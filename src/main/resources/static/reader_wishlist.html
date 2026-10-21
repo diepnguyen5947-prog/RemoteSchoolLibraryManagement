@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sách Yêu Thích - Thư Viện Trường Học</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary-orange: #ea580c;
+            --primary-orange-hover: #c2410c;
+            --bg-color: #f8fafc;
+        }
+
+        body {
+            background: url('/images/wave-bg.png');
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .navbar-reader {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+        }
+
+        .hero-banner {
+            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+            color: white;
+            padding: 35px 30px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(225, 29, 72, 0.25);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
+        }
+
+        .card-book {
+            border: none;
+            border-radius: 16px;
+            background: #ffffff;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #f1f5f9;
+        }
+
+        .card-book:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .book-cover-wrap {
+            position: relative;
+            width: 100%;
+            padding-top: 133.33%;
+            /* 3:4 ratio */
+            overflow: hidden;
+            background-color: #f1f5f9;
+        }
+
+        .book-cover-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .card-book:hover .book-cover-img {
+            transform: scale(1.05);
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .btn-remove-fav {
+            background: rgba(255, 255, 255, 0.9);
+            color: #e11d48;
+            border: 1px solid #fecdd3;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            z-index: 2;
+        }
+
+        .btn-remove-fav:hover {
+            background: #e11d48;
+            color: white;
+            border-color: #e11d48;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-reader sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-white d-flex align-items-center" href="/reader/dashboard">
+                <i class="fa-solid fa-book-open-reader text-warning me-2 fs-4"></i>
+                <span>THƯ VIỆN TRƯỜNG HỌC</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#readerNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="readerNavbar">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-3">
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold" href="/reader/dashboard">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> Tra Cứu Sách
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold" href="/reader/my-loans">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i> Phiếu Mượn Của Tôi
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold active text-warning" href="/reader/wishlist">
+                            <i class="fa-solid fa-heart me-1 text-danger"></i> Sách Yêu Thích
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-white-50 small">
+                        <i class="fa-solid fa-user-graduate text-warning me-1"></i> Độc giả: <strong id="navUserName"
+                            class="text-white">-</strong>
+                    </div>
+                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="handleLogout()">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> Đăng Xuất
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container py-4">
+
+        <!-- Hero Header -->
+        <div class="hero-banner d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="fa-solid fa-heart me-2"></i> Danh Sách Sách Yêu Thích Của Tôi</h3>
+                <p class="mb-0 text-white-50">Lưu trữ riêng biệt cho từng tài khoản độc giả - Dễ dàng theo dõi và mượn
+                    lại nhanh chóng</p>
+            </div>
+            <div>
+                <a href="/reader/dashboard" class="btn btn-light fw-semibold rounded-pill px-4 shadow-sm text-danger">
+                    <i class="fa-solid fa-plus me-1"></i> Khám Phá Thêm Sách
+                </a>
+            </div>
+        </div>
+
+        <!-- Alert Banner if Account is Locked -->
+        <div id="accountBannerContainer"></div>
+
+        <!-- Wishlist Count Badge -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-dark">
+                Các Cuốn Sách Đã Lưu <span id="favCountBadge" class="badge bg-danger rounded-pill ms-2">0 cuốn</span>
+            </h5>
+        </div>
+
+        <!-- Wishlist Grid Container -->
+        <div id="wishlistContainer" class="row g-4">
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-danger" role="status"></div>
+                <p class="mt-2 text-muted">Đang tải danh sách sách yêu thích...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let currentUser = null;
+        let favoriteBooks = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = localStorage.getItem('auth_user');
+            if (!userStr) {
+                window.location.href = '/login';
+                return;
+            }
+            currentUser = JSON.parse(userStr);
+            document.getElementById('navUserName').textContent = currentUser.hoTen || 'Độc giả';
+
+            checkAccountStatus();
+            loadWishlist();
+        });
+
+        async function checkAccountStatus() {
+            if (!currentUser || !currentUser.maDocGia) return;
+            try {
+                const res = await fetch(`/api/reader/status?maDocGia=${currentUser.maDocGia}`);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    currentUser = { ...currentUser, ...result.data };
+                    localStorage.setItem('auth_user', JSON.stringify(currentUser));
+                }
+            } catch (e) { }
+            renderAccountBanner();
+        }
+
+        function renderAccountBanner() {
+            const bannerContainer = document.getElementById('accountBannerContainer');
+            if (!bannerContainer) return;
+            const isLocked = currentUser && (currentUser.isLocked || currentUser.trangThaiTaiKhoan === 0);
+
+            if (isLocked) {
+                let lockTitle = 'TÀI KHOẢN ĐANG BỊ KHOÁ DO CÓ SÁCH QUÁ HẠN > 10 NGÀY';
+                if (currentUser.lyDoKhoa && currentUser.lyDoKhoa.toUpperCase().includes('MẤT SÁCH')) {
+                    lockTitle = 'TÀI KHOẢN ĐANG BỊ KHOÁ DO MẤT SÁCH';
+                }
+                bannerContainer.innerHTML = `
+                    <div class="alert alert-danger shadow-sm border-2 border-danger rounded-4 mb-4 p-2 px-3 d-flex align-items-center">
+                        <i class="fa-solid fa-ban text-danger fa-lg me-2"></i>
+                        <span class="fw-bold text-danger fs-6">${lockTitle}</span>
+                    </div>
+                `;
+            } else {
+                bannerContainer.innerHTML = '';
+            }
+        }
+
+        async function loadWishlist() {
+            try {
+                const res = await fetch(`/api/reader/yeu-thich?maDocGia=${currentUser.maDocGia}`);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    favoriteBooks = result.data;
+                    renderWishlist();
+                } else {
+                    showEmpty();
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Không thể kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function renderWishlist() {
+            const container = document.getElementById('wishlistContainer');
+            document.getElementById('favCountBadge').textContent = `${favoriteBooks.length} cuốn`;
+
+            if (favoriteBooks.length === 0) {
+                showEmpty();
+                return;
+            }
+
+            let html = '';
+            favoriteBooks.forEach(b => {
+                const isAvailable = b.trangThai === 0;
+                const badgeClass = isAvailable ? 'bg-success' : 'bg-danger';
+                const badgeText = isAvailable ? 'Sẵn sàng' : 'Đang mượn';
+                const coverUrl = b.hinhAnh || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80';
+
+                const isAccountLocked = currentUser && (currentUser.isLocked || currentUser.trangThaiTaiKhoan === 0);
+                const lockTooltip = (currentUser && currentUser.lyDoKhoa && currentUser.lyDoKhoa.toUpperCase().includes('MẤT SÁCH')) ? 'Tài khoản đang bị khóa do mất sách' : 'Tài khoản đang bị khóa do có sách quá hạn > 10 ngày';
+
+                html += `
+                    <div class="col-sm-6 col-md-4 col-lg-3">
+                        <div class="card card-book h-100 position-relative">
+                            <!-- Nút Bỏ Yêu Thích Nhanh -->
+                            <button type="button" class="btn-remove-fav" onclick="handleRemoveFavorite(${b.maSach}, '${escapeHtml(b.tenSach)}')" title="Bỏ khỏi yêu thích">
+                                <i class="fa-solid fa-heart-crack"></i>
+                            </button>
+
+                            <div class="book-cover-wrap" style="cursor: pointer;" onclick="window.location.href='/book-detail?id=${b.maSach}'">
+                                <img src="${coverUrl}" class="book-cover-img" alt="${escapeHtml(b.tenSach)}" onerror="this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80'">
+                                <span class="badge ${badgeClass} status-badge position-absolute top-0 end-0 m-2 shadow-sm">
+                                    ${badgeText}
+                                </span>
+                            </div>
+
+                            <div class="card-body p-3 d-flex flex-column">
+                                <div class="text-muted small mb-1">Mã sách: #${b.maSach}</div>
+                                <h6 class="fw-bold text-dark mb-1 text-truncate" title="${escapeHtml(b.tenSach)}">
+                                    <a href="/book-detail?id=${b.maSach}" class="text-decoration-none text-dark hover-primary">${escapeHtml(b.tenSach)}</a>
+                                </h6>
+                                <p class="text-muted small mb-1 text-truncate"><i class="fa-solid fa-feather-pointed me-1"></i> ${escapeHtml(b.tacGia)}</p>
+                                <p class="text-muted small mb-3"><i class="fa-solid fa-calendar me-1"></i> Năm: ${b.namXuatBan}</p>
+                                <div class="mt-auto d-flex gap-2">
+                                    <a href="/book-detail?id=${b.maSach}" class="btn btn-outline-secondary btn-sm flex-fill rounded-pill">
+                                        <i class="fa-solid fa-circle-info me-1"></i> Chi tiết
+                                    </a>
+                                    ${isAvailable ? (
+                                        isAccountLocked ? `
+                                            <button class="btn btn-danger btn-sm flex-fill rounded-pill" disabled title="${lockTooltip}">
+                                                <i class="fa-solid fa-lock me-1"></i> TK Bị Khóa
+                                            </button>
+                                        ` : `
+                                            <button class="btn btn-primary btn-sm flex-fill rounded-pill" onclick="handleDirectBorrow(${b.maSach}, '${escapeHtml(b.tenSach)}')">
+                                                <i class="fa-solid fa-hand-holding-hand me-1"></i> Mượn ngay
+                                            </button>
+                                        `
+                                    ) : `
+                                        <button class="btn btn-secondary btn-sm flex-fill rounded-pill" disabled>
+                                            <i class="fa-solid fa-lock me-1"></i> Đang mượn
+                                        </button>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function showEmpty() {
+            document.getElementById('favCountBadge').textContent = '0 cuốn';
+            document.getElementById('wishlistContainer').innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fa-regular fa-heart fa-4x text-muted mb-3"></i>
+                    <h5 class="fw-bold text-secondary">Danh sách yêu thích của bạn đang trống!</h5>
+                    <p class="text-muted">Bạn có thể bấm biểu tượng "Lưu Yêu Thích" tại bất kỳ trang sách nào để lưu lại danh mục sách muốn đọc sau.</p>
+                    <a href="/reader/dashboard" class="btn btn-primary rounded-pill px-4 mt-2">
+                        <i class="fa-solid fa-book-open me-1"></i> Xem Kho Sách Ngay
+                    </a>
+                </div>
+            `;
+        }
+
+        async function handleRemoveFavorite(maSach, tenSach) {
+            const confirmRes = await Swal.fire({
+                title: 'Bỏ Cuốn Sách Này?',
+                html: `Bạn có chắc muốn bỏ cuốn sách <strong>"${tenSach}"</strong> khỏi danh sách yêu thích?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý bỏ',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                const res = await fetch('/api/reader/yeu-thich/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maDocGia=${currentUser.maDocGia}&maSach=${maSach}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Đã bỏ khỏi danh sách yêu thích!',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                    loadWishlist();
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối: ' + err.message, 'error');
+            }
+        }
+
+        async function handleDirectBorrow(maSach, tenSach) {
+            const isAccountLocked = currentUser && (currentUser.isLocked || currentUser.trangThaiTaiKhoan === 0);
+            if (isAccountLocked) {
+                const lockTitle = (currentUser.lyDoKhoa && currentUser.lyDoKhoa.toUpperCase().includes('MẤT SÁCH'))
+                    ? 'TÀI KHOẢN ĐANG BỊ KHOÁ DO MẤT SÁCH'
+                    : 'TÀI KHOẢN ĐANG BỊ KHOÁ DO CÓ SÁCH QUÁ HẠN > 10 NGÀY';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Tài Khoản Đang Bị Khóa!',
+                    html: `<div class="fw-bold text-danger fs-6">${lockTitle}</div>`,
+                    confirmButtonColor: '#e11d48'
+                });
+                return;
+            }
+
+            const confirmRes = await Swal.fire({
+                title: 'Xác Nhận Mượn Sách',
+                html: `Mượn cuốn sách <strong>"${tenSach}"</strong>?<br><small class="text-muted">Thời hạn chuẩn: 14 ngày.</small>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ea580c',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Xác Nhận Mượn',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                const res = await fetch('/api/muon-sach', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maDocGia=${currentUser.maDocGia}&maSach=${maSach}&soNgayMuon=14`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    const deadline = (result.data && result.data.ngayHetHanGiu) ? result.data.ngayHetHanGiu : '24 giờ tới';
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Đăng Ký Giữ Sách Thành Công!',
+                        html: `<div class="text-start">
+                            <p class="fs-6 text-dark mb-2">Đăng ký giữ sách thành công! Vui lòng đến thư viện nhận sách trước <strong>${deadline}</strong>.</p>
+                            <div class="alert alert-warning small mb-0 border-0">
+                                <i class="fa-solid fa-clock me-1"></i> <strong>Quy định nhận sách:</strong> Sách sẽ được giữ tại quầy trong 24 giờ.
+                            </div>
+                        </div>`,
+                        confirmButtonColor: '#4338ca',
+                        confirmButtonText: 'Đã Hiểu'
+                    });
+                    loadWishlist();
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể mượn sách!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối: ' + err.message, 'error');
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_token');
+            window.location.href = '/login';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+
+</html>

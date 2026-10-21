@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Tiết Sách - Thư Viện Trường Học</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary-orange: #ea580c;
+            --primary-orange-hover: #c2410c;
+            --primary-orange-light: #fff7ed;
+            --primary-orange-border: #fed7aa;
+            --bg-color: #f8fafc;
+            --text-dark: #1e293b;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .custom-nav {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Product Showcase Card */
+        .showcase-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f1f5f9;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        /* Left Column Gallery */
+        .gallery-container {
+            padding: 24px;
+        }
+
+        .main-img-box {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .main-img-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .main-img-box:hover img {
+            transform: scale(1.03);
+        }
+
+        /* Overlay Watermark/Banner on Left */
+        .guarantee-badge {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .guarantee-badge .shield-icon {
+            font-size: 2rem;
+            color: #38bdf8;
+        }
+
+        /* Thumbnails Carousel */
+        .thumb-carousel-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .thumb-btn-nav {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .thumb-btn-nav:hover {
+            background: #ea580c;
+            color: #ffffff;
+            border-color: #ea580c;
+        }
+
+        .thumbnails-list {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 4px 2px;
+            scrollbar-width: none;
+        }
+
+        .thumbnails-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .thumb-item {
+            width: 72px;
+            height: 84px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            overflow: hidden;
+            cursor: pointer;
+            flex-shrink: 0;
+            background: #f1f5f9;
+            transition: all 0.2s;
+        }
+
+        .thumb-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumb-item.active {
+            border-color: var(--primary-orange);
+            box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.2);
+        }
+
+        .thumb-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-view-all-images {
+            background: rgba(15, 23, 42, 0.7);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.82rem;
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            backdrop-filter: blur(4px);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-view-all-images:hover {
+            background: rgba(15, 23, 42, 0.9);
+            color: white;
+        }
+
+        /* Right Column Info */
+        .details-container {
+            padding: 32px;
+            border-left: 1px solid #f1f5f9;
+        }
+
+        .book-main-title {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.35;
+            margin-bottom: 12px;
+        }
+
+        .price-tag {
+            color: var(--primary-orange);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .price-tag .sub-text {
+            font-size: 0.9rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Notice Banner */
+        .condition-alert {
+            background-color: #fefce8;
+            border: 1px solid #fef08a;
+            color: #854d0e;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 0.92rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .condition-alert.borrowed {
+            background-color: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+
+        /* Specification Table */
+        .spec-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px dashed #e2e8f0;
+            font-size: 0.95rem;
+            align-items: center;
+        }
+
+        .spec-label {
+            width: 160px;
+            color: #64748b;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .spec-value {
+            color: #1e293b;
+            font-weight: 600;
+            flex-grow: 1;
+        }
+
+        /* ISBN Barcode Badge */
+        .isbn-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+
+        .barcode-svg {
+            height: 32px;
+            vertical-align: middle;
+        }
+
+        /* Quantity / Loan Period Selector */
+        .qty-control {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .qty-btn {
+            background: #f8fafc;
+            border: none;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #334155;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .qty-btn:hover {
+            background: #e2e8f0;
+        }
+
+        .qty-input {
+            width: 60px;
+            height: 38px;
+            border: none;
+            border-left: 1px solid #cbd5e1;
+            border-right: 1px solid #cbd5e1;
+            text-align: center;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        /* Action Buttons */
+        .action-btn-group {
+            display: flex;
+            gap: 14px;
+            margin-top: 28px;
+            margin-bottom: 24px;
+        }
+
+        .btn-wishlist {
+            border: 1.5px solid var(--primary-orange);
+            color: var(--primary-orange);
+            background: var(--primary-orange-light);
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .btn-wishlist:hover {
+            background: #ffedd5;
+            color: var(--primary-orange-hover);
+        }
+
+        .btn-borrow-now {
+            background: var(--primary-orange);
+            border: none;
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 12px 28px;
+            font-weight: 600;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            flex: 1.2;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
+        }
+
+        .btn-borrow-now:hover {
+            background: var(--primary-orange-hover);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .btn-borrow-now:disabled {
+            background: #94a3b8;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Trust Badges at Bottom */
+        .trust-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 0;
+            font-size: 0.88rem;
+            color: #475569;
+        }
+
+        .trust-item i {
+            color: #16a34a;
+            font-size: 1.15rem;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar navbar-expand-lg custom-nav sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-dark d-flex align-items-center" href="/reader/dashboard">
+                <i class="fa-solid fa-book-open-reader text-warning me-2 fs-4"></i>
+                <span>THƯ VIỆN TRƯỜNG HỌC</span>
+            </a>
+            <div class="d-flex align-items-center gap-3 ms-auto">
+                <a href="/reader/dashboard" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Quay Lại Danh Mục Sách
+                </a>
+                <a href="/reader/my-loans" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Phiếu Mượn Của Tôi
+                </a>
+                <a href="/reader/wishlist" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                    <i class="fa-solid fa-heart me-1"></i> Sách Yêu Thích
+                </a>
+                <div class="text-secondary small d-none d-md-block">
+                    <i class="fa-solid fa-user-circle text-primary me-1"></i> <strong id="navUserName">Độc giả</strong>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container py-4">
+
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb small">
+                <li class="breadcrumb-item"><a href="/reader/dashboard" class="text-decoration-none text-muted">Trang
+                        chủ</a></li>
+                <li class="breadcrumb-item"><a href="/reader/dashboard" class="text-decoration-none text-muted">Kho
+                        sách</a></li>
+                <li class="breadcrumb-item active text-dark fw-semibold" id="breadcrumbBookTitle">Chi tiết cuốn sách
+                </li>
+            </ol>
+        </nav>
+
+        <!-- Main Product Card (2 Columns Showcase) -->
+        <div class="showcase-card">
+            <div class="row g-0">
+
+                <!-- CỘT BÊN TRÁI: DANH SÁCH ẢNH & THUMBNAILS -->
+                <div class="col-lg-5 gallery-container">
+                    <!-- Khung Ảnh Lớn Chính -->
+                    <div class="main-img-box" id="mainImgBox">
+                        <img id="mainBookImg" src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&q=80"
+                            alt="Bìa sách">
+                        <button type="button" class="btn-view-all-images" onclick="openAllImagesModal()">
+                            <i class="fa-solid fa-images me-1"></i> Xem tất cả ảnh (<span id="imgCount">4</span>)
+                        </button>
+                    </div>
+
+                    <!-- Hàng Thumbnails Cuộn Ngang -->
+                    <div class="thumb-carousel-wrap">
+                        <button class="thumb-btn-nav" onclick="scrollThumbnails(-1)" title="Ảnh trước">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <div class="thumbnails-list" id="thumbnailsContainer">
+                            <!-- Thumbnails được chèn động bằng JS -->
+                        </div>
+                        <button class="thumb-btn-nav" onclick="scrollThumbnails(1)" title="Ảnh sau">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Khung Cam Kết Độ Tin Cậy (Giống ảnh mẫu Oreka) -->
+                    <div class="guarantee-badge mt-3">
+                        <div class="shield-icon">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold fs-6">Mượn sách tại Thư viện được đảm bảo!</div>
+                            <div class="small text-white-50">Đảm bảo sách nguyên vẹn 100%, bảo quản phòng máy lạnh đạt
+                                chuẩn học liệu đại học.</div>
+                        </div>
+                    </div>
+
+                    <!-- Các tiện ích tương tác bên dưới ảnh -->
+                    <div
+                        class="d-flex justify-content-between align-items-center mt-3 pt-2 text-muted small border-top">
+                        <span class="text-secondary"><i class="fa-solid fa-tag me-1 text-warning"></i> Sách chính
+                            quy</span>
+                        <div class="d-flex gap-3">
+                            <a href="javascript:void(0)" onclick="shareBook()"
+                                class="text-decoration-none text-muted"><i class="fa-solid fa-share-nodes me-1"></i>
+                                Chia sẻ</a>
+                            <a href="javascript:void(0)" onclick="reportBook()"
+                                class="text-decoration-none text-muted"><i class="fa-regular fa-flag me-1"></i> Báo
+                                cáo</a>
+                            <a href="javascript:void(0)" onclick="toggleWishlist()" id="wishlistLink"
+                                class="text-decoration-none text-muted"><i
+                                    class="fa-regular fa-heart me-1 text-danger"></i> Yêu thích</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CỘT BÊN PHẢI: TÌNH TRẠNG SÁCH, THÔNG TIN SÁCH, MÃ ISBN SINH TỰ ĐỘNG -->
+                <div class="col-lg-7 details-container">
+                    <!-- Tên sách -->
+                    <h1 class="book-main-title" id="bookTitle">Đang tải thông tin sách...</h1>
+
+                    <!-- Tình trạng sách (Khung thông báo màu vàng nhạt) -->
+                    <div class="condition-alert" id="bookConditionAlert">
+                        <i class="fa-solid fa-circle-info fs-5 mt-1"></i>
+                        <div id="conditionAlertText">
+                            <strong>Tình trạng sách:</strong> Sách mới 98%, các trang nguyên vẹn không nhàu nát hay gạch
+                            xóa, bìa cứng phẳng phiu, sẵn sàng mượn ngay.
+                        </div>
+                    </div>
+
+                    <!-- Bảng thông tin chi tiết của sách -->
+                    <div class="book-specs-table mb-4">
+                        <div class="spec-row">
+                            <span class="spec-label"><i class="fa-solid fa-pen-nib me-2 text-primary"></i> Tác
+                                giả:</span>
+                            <span class="spec-value" id="bookAuthor">-</span>
+                        </div>
+
+                        <div class="spec-row">
+                            <span class="spec-label"><i class="fa-solid fa-calendar-check me-2 text-primary"></i> Năm
+                                sản xuất:</span>
+                            <span class="spec-value" id="bookYear">-</span>
+                        </div>
+
+                        <div class="spec-row">
+                            <span class="spec-label"><i
+                                    class="fa-solid fa-up-right-and-down-left-from-center me-2 text-primary"></i> Kích
+                                thước:</span>
+                            <span class="spec-value" id="bookDimensions">14.5 x 20.5 cm (Khổ chuẩn)</span>
+                        </div>
+
+                        <div class="spec-row">
+                            <span class="spec-label"><i class="fa-solid fa-barcode me-2 text-primary"></i> Mã
+                                ISBN:</span>
+                            <div class="spec-value">
+                                <div class="isbn-box">
+                                    <strong id="bookIsbnText" class="text-danger font-monospace">ISBN
+                                        978-604-58-2914-7</strong>
+                                    <button class="btn btn-sm btn-outline-secondary py-0 px-2 rounded"
+                                        onclick="copyIsbn()" title="Sao chép mã ISBN">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                </div>
+                                <div class="mt-1" id="barcodeSvgContainer">
+                                    <!-- Barcode SVG sinh tự động -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="spec-row">
+                            <span class="spec-label"><i class="fa-solid fa-circle-dot me-2 text-primary"></i> Trạng thái
+                                mượn:</span>
+                            <span class="spec-value" id="bookStatusBadge">
+                                <span class="badge bg-success px-3 py-2 rounded-pill">Sẵn sàng mượn</span>
+                            </span>
+                        </div>
+
+                        <div class="spec-row">
+                            <span class="spec-label"><i class="fa-solid fa-location-dot me-2 text-primary"></i> Vị trí
+                                kệ sách:</span>
+                            <span class="spec-value" id="bookLocation">Khu A - Tầng 2 - Kệ Sách Số 04 (Thư Viện Trung
+                                Tâm)</span>
+                        </div>
+
+                        <div class="spec-row">
+                            <span class="spec-label"><i class="fa-solid fa-truck-ramp-box me-2 text-primary"></i> Nhận
+                                sách:</span>
+                            <span class="spec-value text-muted">Nhận trực tiếp tại quầy Thủ thư sau khi đăng ký mượn
+                                trực tuyến.</span>
+                        </div>
+                    </div>
+
+                    <!-- Tùy chọn Số ngày mượn -->
+                    <div class="mb-3 d-flex align-items-center gap-3">
+                        <span class="spec-label" style="width: 160px;"><i
+                                class="fa-solid fa-calendar-days me-2 text-primary"></i> Hạn mượn dự kiến:</span>
+                        <div class="qty-control">
+                            <button type="button" class="qty-btn" onclick="adjustLoanDays(-1)"><i
+                                    class="fa-solid fa-minus"></i></button>
+                            <input type="text" id="loanDaysInput" class="qty-input" value="14" readonly>
+                            <button type="button" class="qty-btn" onclick="adjustLoanDays(1)"><i
+                                    class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <span class="text-muted small">ngày (Tối đa 30 ngày)</span>
+                    </div>
+
+                    <!-- Khu vực Nút Thao Tác (Giống nút Thêm vào giỏ hàng & Mua ngay của Oreka) -->
+                    <div class="action-btn-group">
+                        <button type="button" class="btn-wishlist" onclick="toggleWishlist()">
+                            <i class="fa-regular fa-heart"></i> Lưu Yêu Thích
+                        </button>
+                        <button type="button" id="btnMainBorrow" class="btn-borrow-now" onclick="handleBorrowBook()">
+                            <i class="fa-solid fa-hand-holding-hand"></i> Mượn Sách Ngay
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal Xem Toàn Bộ Ảnh (Lightbox Modal) -->
+    <div class="modal fade" id="allImagesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="galleryModalTitle">
+                        <i class="fa-solid fa-images me-2"></i> Trọn Bộ Ảnh Cuốn Sách
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <img id="lightboxLargeImg" src=""
+                        style="max-height: 480px; max-width: 100%; object-fit: contain; border-radius: 8px;"
+                        class="shadow-sm mb-3">
+                    <div class="fw-bold text-dark fs-6" id="lightboxImgCaption">Bìa trước cuốn sách</div>
+                    <div class="d-flex justify-content-center gap-2 mt-3 overflow-auto" id="lightboxThumbnails"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let currentUser = null;
+        let bookData = null;
+        let bookImages = [];
+        let currentImgIndex = 0;
+        let allImagesModalInstance = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            allImagesModalInstance = new bootstrap.Modal(document.getElementById('allImagesModal'));
+
+            // Đọc thông tin người dùng đăng nhập
+            const userStr = localStorage.getItem('auth_user');
+            if (userStr) {
+                currentUser = JSON.parse(userStr);
+                document.getElementById('navUserName').textContent = currentUser.hoTen || 'Độc giả';
+
+                // Cập nhật trạng thái mới nhất từ server
+                if (currentUser.maDocGia) {
+                    try {
+                        const statusRes = await fetch(`/api/reader/status?maDocGia=${currentUser.maDocGia}`);
+                        const statusData = await statusRes.json();
+                        if (statusData.success && statusData.data) {
+                            currentUser = { ...currentUser, ...statusData.data };
+                            localStorage.setItem('auth_user', JSON.stringify(currentUser));
+                        }
+                    } catch (e) {}
+                }
+            } else {
+                document.getElementById('navUserName').innerHTML = '<a href="/login" class="text-primary text-decoration-none fw-semibold">Đăng nhập</a>';
+            }
+
+            // Đọc mã sách từ URL query (?id=... hoặc ?maSach=...)
+            const urlParams = new URLSearchParams(window.location.search);
+            const bookId = urlParams.get('id') || urlParams.get('maSach') || '1';
+
+            loadBookDetail(bookId);
+        });
+
+        // 1. Tải thông tin cuốn sách từ API
+        async function loadBookDetail(id) {
+            try {
+                const res = await fetch(`/api/sach/chi-tiet?id=${encodeURIComponent(id)}`);
+                const result = await res.json();
+
+                if (result.success && result.data) {
+                    bookData = result.data;
+                    // Nếu sách đang được mượn mà chưa có thông tin ngày hẹn trả, truy vấn thêm từ /api/phieu-muon
+                    if (bookData.trangThai !== 0 && !bookData.ngayHenTra) {
+                        try {
+                            const resLoans = await fetch('/api/phieu-muon');
+                            const loansResult = await resLoans.json();
+                            if (loansResult.success && loansResult.data) {
+                                const activeLoan = loansResult.data.find(p => p.maSach == bookData.maSach && p.trangThaiPhieu !== 1);
+                                if (activeLoan && activeLoan.ngayHenTra) {
+                                    bookData.ngayHenTra = activeLoan.ngayHenTra;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Không thể lấy chi tiết phiếu mượn:', e);
+                        }
+                    }
+                    renderBookDetails(bookData);
+                } else {
+                    // Nếu API chi-tiet chưa tìm thấy, thử tìm từ danh sách đầy đủ
+                    const fallbackRes = await fetch('/api/sach');
+                    const fallbackData = await fallbackRes.json();
+                    if (fallbackData.success && fallbackData.data) {
+                        const found = fallbackData.data.find(b => b.maSach == id) || fallbackData.data[0];
+                        if (found) {
+                            bookData = found;
+                            if (bookData.trangThai !== 0 && !bookData.ngayHenTra) {
+                                try {
+                                    const resLoans = await fetch('/api/phieu-muon');
+                                    const loansResult = await resLoans.json();
+                                    if (loansResult.success && loansResult.data) {
+                                        const activeLoan = loansResult.data.find(p => p.maSach == bookData.maSach && (p.trangThaiPhieu === 1 || p.trangThaiPhieu === 0));
+                                        if (activeLoan && activeLoan.ngayHenTra) {
+                                            bookData.ngayHenTra = activeLoan.ngayHenTra;
+                                        }
+                                    }
+                                } catch (e) {}
+                            }
+                            renderBookDetails(bookData);
+                            return;
+                        }
+                    }
+                    showErrorAndBack('Không tìm thấy thông tin cuốn sách này!');
+                }
+            } catch (err) {
+                console.error('Lỗi khi tải chi tiết sách:', err);
+                showErrorAndBack('Lỗi kết nối máy chủ khi tải sách: ' + err.message);
+            }
+        }
+
+        // Định dạng ngày hẹn trả: giờ, ngày/tháng/năm (vd: 12:31, 29/10/2026)
+        function formatExpectedReturnDate(dateStr) {
+            if (!dateStr || dateStr === 'null' || String(dateStr).trim() === '') {
+                return 'Đang cập nhật';
+            }
+            const str = String(dateStr).trim();
+            const parts = str.split(' ');
+            if (parts.length === 2) {
+                const [dPart, tPart] = parts;
+                const [y, m, d] = dPart.split('-');
+                if (y && m && d) {
+                    const timeStr = tPart.length > 5 ? tPart.substring(0, 5) : tPart;
+                    return `${timeStr}, ${d}/${m}/${y}`;
+                }
+            }
+            const dt = new Date(str);
+            if (!isNaN(dt.getTime())) {
+                const hours = String(dt.getHours()).padStart(2, '0');
+                const minutes = String(dt.getMinutes()).padStart(2, '0');
+                const day = String(dt.getDate()).padStart(2, '0');
+                const month = String(dt.getMonth() + 1).padStart(2, '0');
+                const year = dt.getFullYear();
+                return `${hours}:${minutes}, ${day}/${month}/${year}`;
+            }
+            return str;
+        }
+
+        // 2. Hiển thị thông tin sách chi tiết lên giao diện
+        function renderBookDetails(b) {
+            document.title = `${b.tenSach} - Thư Viện Trường Học`;
+            document.getElementById('breadcrumbBookTitle').textContent = b.tenSach;
+            document.getElementById('bookTitle').textContent = b.tenSach;
+            document.getElementById('bookAuthor').textContent = b.tacGia || 'Đang cập nhật';
+            document.getElementById('bookYear').textContent = b.namXuatBan || new Date().getFullYear();
+
+            // Kích thước khổ sách tính toán theo mã sách
+            const dimType = (b.maSach % 3);
+            let dimensionStr = "14.5 x 20.5 cm (Khổ chuẩn tiêu chuẩn)";
+            if (dimType === 0) dimensionStr = "16 x 24 cm (Khổ lớn cao cấp)";
+            else if (dimType === 1) dimensionStr = "13 x 19 cm (Khổ vừa bỏ túi)";
+            document.getElementById('bookDimensions').textContent = dimensionStr;
+
+            // Vị trí lưu kho
+            const shelfNum = (b.maSach % 8) + 1;
+            const floorNum = (b.maSach % 3) + 1;
+            document.getElementById('bookLocation').textContent = `Tầng ${floorNum} - Dãy Bàn Đọc - Kệ Số 0${shelfNum}`;
+
+            // Sinh mã ISBN-13 tự động có kiểm tra tính toán Checksum Modulo 10
+            const generatedIsbn = generateValidIsbn13(b.maSach);
+            document.getElementById('bookIsbnText').textContent = `ISBN ${generatedIsbn}`;
+            renderSvgBarcode(generatedIsbn);
+
+            // Xử lý Tình trạng sách & Nút Mượn
+            const isAvailable = (b.trangThai === 0);
+            const isHold = (b.trangThai === 2);
+            const isLost = (b.trangThai === -1 || b.trangThai === -2);
+            const statusBadge = document.getElementById('bookStatusBadge');
+            const alertBox = document.getElementById('bookConditionAlert');
+            const alertText = document.getElementById('conditionAlertText');
+            const btnBorrow = document.getElementById('btnMainBorrow');
+
+            const isAccountLocked = currentUser && (currentUser.isLocked || currentUser.trangThaiTaiKhoan === 0);
+
+            if (isAvailable) {
+                statusBadge.innerHTML = `<span class="badge bg-success px-3 py-2 rounded-pill"><i class="fa-solid fa-circle-check me-1"></i> Sẵn sàng mượn</span>`;
+                if (isAccountLocked) {
+                    const lockTitle = (currentUser.lyDoKhoa && currentUser.lyDoKhoa.toUpperCase().includes('MẤT SÁCH'))
+                        ? 'TÀI KHOẢN ĐANG BỊ KHOÁ DO MẤT SÁCH'
+                        : 'TÀI KHOẢN ĐANG BỊ KHOÁ DO CÓ SÁCH QUÁ HẠN > 10 NGÀY';
+                    alertBox.className = "condition-alert borrowed";
+                    alertText.innerHTML = `<span class="text-danger fw-bold"><i class="fa-solid fa-ban me-1"></i> ${lockTitle}</span>`;
+                    btnBorrow.disabled = true;
+                    btnBorrow.className = "btn btn-danger btn-lg w-100 rounded-pill shadow-sm fw-semibold";
+                    btnBorrow.innerHTML = `<i class="fa-solid fa-lock me-1"></i> TK Bị Khóa`;
+                } else {
+                    alertBox.className = "condition-alert";
+                    alertText.innerHTML = `<strong>Tình trạng sách:</strong> Sách mới 98%, các trang nguyên vẹn không nhàu nát hay gạch xóa, bìa phẳng phiu, sẵn sàng phục vụ mượn đọc ngay hôm nay.`;
+                    btnBorrow.disabled = false;
+                    btnBorrow.className = "btn btn-primary btn-lg w-100 rounded-pill shadow-sm fw-semibold";
+                    btnBorrow.innerHTML = `<i class="fa-solid fa-hand-holding-hand me-1"></i> Mượn Sách Ngay`;
+                }
+            } else if (isHold) {
+                statusBadge.innerHTML = `<span class="badge bg-warning text-dark px-3 py-2 rounded-pill"><i class="fa-solid fa-clock me-1"></i> Đang được giữ chỗ</span>`;
+                alertBox.className = "condition-alert warning";
+                alertText.innerHTML = `<strong>Tình trạng sách:</strong> Cuốn sách này hiện đang được giữ chỗ trực tuyến cho một bạn đọc đến nhận tại quầy thư viện trong vòng 24 giờ. Bạn có thể lưu vào danh sách yêu thích để nhận thông báo ngay khi sách sẵn sàng!`;
+                btnBorrow.disabled = true;
+                btnBorrow.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Đang Được Giữ Chỗ`;
+            } else if (isLost) {
+                statusBadge.innerHTML = `<span class="badge bg-secondary px-3 py-2 rounded-pill"><i class="fa-solid fa-triangle-exclamation me-1"></i> Ngừng phục vụ / Báo mất</span>`;
+                alertBox.className = "condition-alert borrowed";
+                alertText.innerHTML = `<strong>Tình trạng sách:</strong> Cuốn sách này hiện đang tạm ngừng phục vụ hoặc đang trong quá trình xử lý bồi thường sách mất.`;
+                btnBorrow.disabled = true;
+                btnBorrow.innerHTML = `<i class="fa-solid fa-ban me-1"></i> Tạm Ngừng Phục Vụ`;
+            } else {
+                statusBadge.innerHTML = `<span class="badge bg-danger px-3 py-2 rounded-pill"><i class="fa-solid fa-lock me-1"></i> Đang được mượn</span>`;
+                alertBox.className = "condition-alert borrowed";
+                const returnDateStr = formatExpectedReturnDate(b.ngayHenTra);
+                alertText.innerHTML = `<strong>Tình trạng sách:</strong> Cuốn sách này hiện đang được một bạn đọc khác mượn. Ngày hẹn trả dự kiến: ${returnDateStr}.`;
+                btnBorrow.disabled = true;
+                btnBorrow.innerHTML = `<i class="fa-solid fa-ban me-1"></i> Sách Đang Được Mượn`;
+            }
+
+            // Xây dựng danh sách ảnh phong phú (Bìa trước, Mục lục, Bìa trong, Bìa sau)
+            setupBookGallery(b);
+
+            // Kiểm tra trạng thái yêu thích của độc giả
+            checkWishlistStatus();
+        }
+
+        // 3. Khởi tạo danh sách ảnh Gallery bên trái
+        function setupBookGallery(b) {
+            let imgs = [];
+            if (b.danhSachHinhAnh && Array.isArray(b.danhSachHinhAnh) && b.danhSachHinhAnh.length > 0) {
+                imgs = b.danhSachHinhAnh;
+            } else if (b.rawHinhAnh) {
+                imgs = b.rawHinhAnh.split('|||').map(s => s.trim()).filter(Boolean);
+            } else if (b.hinhAnh) {
+                imgs = b.hinhAnh.split('|||').map(s => s.trim()).filter(Boolean);
+            }
+
+            if (imgs.length === 0) {
+                imgs = ['https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&q=80'];
+            }
+
+            bookImages = imgs.map((url, idx) => ({
+                url: url,
+                label: idx === 0 ? 'Ảnh bìa chính cuốn sách' : `Ảnh chi tiết minh họa #${idx + 1}`
+            }));
+
+            document.getElementById('imgCount').textContent = bookImages.length;
+            renderThumbnails();
+            switchMainImage(0);
+        }
+
+        function renderThumbnails() {
+            const container = document.getElementById('thumbnailsContainer');
+            container.innerHTML = '';
+
+            bookImages.forEach((imgObj, idx) => {
+                const thumb = document.createElement('div');
+                thumb.className = `thumb-item ${idx === 0 ? 'active' : ''}`;
+                thumb.innerHTML = `<img src="${imgObj.url}" alt="${escapeHtml(imgObj.label)}">`;
+                thumb.onclick = () => switchMainImage(idx);
+                container.appendChild(thumb);
+            });
+        }
+
+        function switchMainImage(index) {
+            if (index < 0 || index >= bookImages.length) return;
+            currentImgIndex = index;
+
+            const mainImg = document.getElementById('mainBookImg');
+            mainImg.style.opacity = '0.5';
+            setTimeout(() => {
+                mainImg.src = bookImages[index].url;
+                mainImg.style.opacity = '1';
+            }, 120);
+
+            // Cập nhật trạng thái active của thumbnail
+            const thumbs = document.querySelectorAll('.thumb-item');
+            thumbs.forEach((t, i) => {
+                t.classList.toggle('active', i === index);
+            });
+        }
+
+        function scrollThumbnails(direction) {
+            const container = document.getElementById('thumbnailsContainer');
+            container.scrollBy({ left: direction * 120, behavior: 'smooth' });
+            let newIdx = currentImgIndex + direction;
+            if (newIdx >= 0 && newIdx < bookImages.length) {
+                switchMainImage(newIdx);
+            }
+        }
+
+        function openAllImagesModal() {
+            const currentImg = bookImages[currentImgIndex];
+            document.getElementById('lightboxLargeImg').src = currentImg.url;
+            document.getElementById('lightboxImgCaption').textContent = currentImg.label;
+
+            const thumbsBox = document.getElementById('lightboxThumbnails');
+            thumbsBox.innerHTML = '';
+            bookImages.forEach((item, idx) => {
+                const t = document.createElement('img');
+                t.src = item.url;
+                t.style.width = '60px';
+                t.style.height = '75px';
+                t.style.objectFit = 'cover';
+                t.style.borderRadius = '6px';
+                t.style.cursor = 'pointer';
+                t.style.border = (idx === currentImgIndex) ? '2px solid #ea580c' : '1px solid #cbd5e1';
+                t.onclick = () => {
+                    document.getElementById('lightboxLargeImg').src = item.url;
+                    document.getElementById('lightboxImgCaption').textContent = item.label;
+                    switchMainImage(idx);
+                    openAllImagesModal();
+                };
+                thumbsBox.appendChild(t);
+            });
+
+            allImagesModalInstance.show();
+        }
+
+        // 4. Thuật toán sinh mã ISBN-13 tự động chuẩn quốc tế
+        function generateValidIsbn13(bookId) {
+            const id = parseInt(bookId) || 1;
+            const prefix = "978";
+            const country = "604"; // Việt Nam
+            const publisher = String((id * 7 + 13) % 90 + 10); // 2 chữ số
+            const itemCode = String((id * 137 + 42) % 9000 + 1000); // 4 chữ số
+
+            const raw12 = `${prefix}${country}${publisher}${itemCode}`;
+
+            // Tính số kiểm tra thứ 13 (Checksum Modulo 10)
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                const digit = parseInt(raw12[i]);
+                sum += (i % 2 === 0) ? digit * 1 : digit * 3;
+            }
+            const remainder = sum % 10;
+            const checkDigit = (remainder === 0) ? 0 : (10 - remainder);
+
+            return `${prefix}-${country}-${publisher}-${itemCode}-${checkDigit}`;
+        }
+
+        // 5. Vẽ đồ họa mã vạch Barcode SVG (Code 128 / EAN-13 pattern)
+        function renderSvgBarcode(isbnStr) {
+            const cleanDigits = isbnStr.replace(/[^0-9]/g, '');
+            let barsHtml = '';
+            let currentX = 10;
+
+            for (let i = 0; i < cleanDigits.length; i++) {
+                const val = parseInt(cleanDigits[i]);
+                const barWidth = (val % 3 === 0) ? 3 : (val % 2 === 0 ? 2 : 1);
+                const spaceWidth = ((val + 1) % 2 === 0) ? 2 : 1;
+
+                barsHtml += `<rect x="${currentX}" y="2" width="${barWidth}" height="28" fill="#1e293b"/>`;
+                currentX += barWidth + spaceWidth;
+            }
+
+            const svg = `
+                <svg width="${currentX + 15}" height="32" viewBox="0 0 ${currentX + 15} 32" class="barcode-svg" xmlns="http://www.w3.org/2000/svg">
+                    ${barsHtml}
+                </svg>
+            `;
+            document.getElementById('barcodeSvgContainer').innerHTML = svg;
+        }
+
+        // 6. Sao chép mã ISBN vào Clipboard
+        function copyIsbn() {
+            const isbn = document.getElementById('bookIsbnText').textContent.replace('ISBN ', '');
+            navigator.clipboard.writeText(isbn).then(() => {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Đã sao chép mã ISBN: ' + isbn,
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            });
+        }
+
+        // 7. Điều chỉnh số ngày mượn
+        function adjustLoanDays(delta) {
+            const input = document.getElementById('loanDaysInput');
+            let current = parseInt(input.value) || 14;
+            current += delta;
+            if (current < 1) current = 1;
+            if (current > 30) current = 30;
+            input.value = current;
+        }
+
+        // 8. Xử lý Mượn Sách Trực Tiếp
+        async function handleBorrowBook() {
+            if (!currentUser) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Yêu Cầu Đăng Nhập',
+                    text: 'Vui lòng đăng nhập tài khoản Độc giả để thực hiện mượn cuốn sách này!',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ea580c',
+                    confirmButtonText: 'Đăng Nhập Ngay',
+                    cancelButtonText: 'Để sau'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        window.location.href = '/login';
+                    }
+                });
+                return;
+            }
+
+            if (currentUser.vaiTro !== 'READER') {
+                Swal.fire('Thông báo', 'Tài khoản Thủ thư không trực tiếp mượn sách. Vui lòng chuyển sang cổng Quản lý phiếu mượn!', 'info');
+                return;
+            }
+
+            const isAccountLocked = currentUser && (currentUser.isLocked || currentUser.trangThaiTaiKhoan === 0);
+            if (isAccountLocked) {
+                const lockTitle = (currentUser.lyDoKhoa && currentUser.lyDoKhoa.toUpperCase().includes('MẤT SÁCH'))
+                    ? 'TÀI KHOẢN ĐANG BỊ KHOÁ DO MẤT SÁCH'
+                    : 'TÀI KHOẢN ĐANG BỊ KHOÁ DO CÓ SÁCH QUÁ HẠN > 10 NGÀY';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Tài Khoản Đang Bị Khóa!',
+                    html: `<div class="fw-bold text-danger fs-6">${lockTitle}</div>`,
+                    confirmButtonColor: '#e11d48'
+                });
+                return;
+            }
+
+            if (!bookData || bookData.trangThai !== 0) {
+                Swal.fire('Thông báo', 'Cuốn sách hiện không sẵn sàng để mượn (đang có người mượn hoặc đang được giữ chỗ)!', 'warning');
+                return;
+            }
+
+            const days = document.getElementById('loanDaysInput').value;
+            const confirmRes = await Swal.fire({
+                title: 'Xác Nhận Đăng Ký Mượn',
+                html: `Bạn có chắc chắn muốn mượn cuốn sách: <br><strong class="text-primary">${escapeHtml(bookData.tenSach)}</strong><br><small class="text-muted">Thời hạn mượn: ${days} ngày. Độc giả: ${escapeHtml(currentUser.hoTen)}</small>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ea580c',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-check me-1"></i> Xác Nhận Mượn',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            const btnBorrow = document.getElementById('btnMainBorrow');
+            btnBorrow.disabled = true;
+            btnBorrow.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
+
+            try {
+                const res = await fetch('/api/muon-sach', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maDocGia=${currentUser.maDocGia}&maSach=${bookData.maSach}&soNgayMuon=${days}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    const deadline = (result.data && result.data.ngayHetHanGiu) ? result.data.ngayHetHanGiu : '24 giờ tới';
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Đăng Ký Giữ Sách Thành Công!',
+                        html: `<div class="text-start">
+                            <p class="fs-6 text-dark mb-2">Đăng ký giữ sách thành công! Vui lòng đến thư viện nhận sách trước <strong>${deadline}</strong>.</p>
+                            <div class="alert alert-warning small mb-0 border-0">
+                                <i class="fa-solid fa-clock me-1"></i> <strong>Thời gian giữ sách:</strong> 24 giờ.<br>
+                                Sau thời gian này nếu bạn không đến quầy nhận sách, hệ thống sẽ tự động hủy phiếu để nhường sách cho bạn đọc khác.
+                            </div>
+                        </div>`,
+                        confirmButtonColor: '#ea580c',
+                        confirmButtonText: 'Đã Hiểu'
+                    });
+                    // Tải lại chi tiết sách để cập nhật trạng thái mới
+                    loadBookDetail(bookData.maSach);
+                } else {
+                    Swal.fire('Mượn Sách Không Thành Công', result.message || 'Sách có thể vừa được người khác mượn!', 'error');
+                    loadBookDetail(bookData.maSach);
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            } finally {
+                btnBorrow.disabled = false;
+                btnBorrow.innerHTML = `<i class="fa-solid fa-hand-holding-hand me-1"></i> Mượn Sách Ngay`;
+            }
+        }
+
+        // 9. Các tính năng phụ trợ (Chia sẻ, Báo cáo, Yêu thích)
+        let isBookFavorited = false;
+
+        async function checkWishlistStatus() {
+            if (!currentUser || !bookData) return;
+            try {
+                const res = await fetch(`/api/reader/yeu-thich/check?maDocGia=${currentUser.maDocGia}&maSach=${bookData.maSach}`);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    isBookFavorited = !!result.data.isFavorite;
+                    updateWishlistButtonUI();
+                }
+            } catch (e) {
+                console.error("Lỗi kiểm tra yêu thích:", e);
+            }
+        }
+
+        function updateWishlistButtonUI() {
+            const btn = document.querySelector('.btn-wishlist');
+            const link = document.getElementById('wishlistLink');
+            if (isBookFavorited) {
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-heart text-danger"></i> Đã Lưu Yêu Thích`;
+                    btn.style.background = '#ffe4e6';
+                    btn.style.borderColor = '#f43f5e';
+                    btn.style.color = '#e11d48';
+                }
+                if (link) {
+                    link.innerHTML = `<i class="fa-solid fa-heart text-danger me-1"></i> Đã thích`;
+                }
+            } else {
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-regular fa-heart"></i> Lưu Yêu Thích`;
+                    btn.style.background = 'var(--primary-orange-light)';
+                    btn.style.borderColor = 'var(--primary-orange)';
+                    btn.style.color = 'var(--primary-orange)';
+                }
+                if (link) {
+                    link.innerHTML = `<i class="fa-regular fa-heart text-danger me-1"></i> Yêu thích`;
+                }
+            }
+        }
+
+        async function toggleWishlist() {
+            if (!currentUser) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Yêu Cầu Đăng Nhập',
+                    text: 'Vui lòng đăng nhập để lưu cuốn sách này vào danh sách yêu thích cá nhân!',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ea580c',
+                    confirmButtonText: 'Đăng Nhập Ngay',
+                    cancelButtonText: 'Để sau'
+                }).then(r => {
+                    if (r.isConfirmed) window.location.href = '/login';
+                });
+                return;
+            }
+
+            if (!bookData) return;
+
+            try {
+                const res = await fetch('/api/reader/yeu-thich/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maDocGia=${currentUser.maDocGia}&maSach=${bookData.maSach}`
+                });
+                const result = await res.json();
+                if (result.success) {
+                    isBookFavorited = !!(result.data && result.data.isFavorite);
+                    updateWishlistButtonUI();
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: isBookFavorited ? 'success' : 'info',
+                        title: result.message,
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi lưu yêu thích: ' + err.message, 'error');
+            }
+        }
+
+        function shareBook() {
+            navigator.clipboard.writeText(window.location.href);
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: 'Đã sao chép liên kết cuốn sách!',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+
+        async function reportBook() {
+            const { value: content, isConfirmed } = await Swal.fire({
+                title: 'Báo Cáo Tình Trạng Sách',
+                input: 'textarea',
+                inputLabel: 'Mô tả vấn đề bạn gặp phải (rách trang, nhầm tên, mờ chữ...):',
+                inputPlaceholder: 'Nhập nội dung phản hồi cụ thể...',
+                showCancelButton: true,
+                confirmButtonColor: '#ea580c',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-paper-plane me-1"></i> Gửi Phản Hồi',
+                cancelButtonText: 'Đóng',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Vui lòng nhập nội dung mô tả sự cố!';
+                    }
+                }
+            });
+
+            if (!isConfirmed || !content) return;
+
+            const readerId = currentUser ? currentUser.maDocGia : 0;
+            const bookId = bookData ? bookData.maSach : 0;
+            const title = bookData ? `Báo cáo sách #${bookData.maSach} - ${bookData.tenSach}` : 'Báo cáo tình trạng sách';
+
+            try {
+                const res = await fetch('/api/phan-hoi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maDocGia=${readerId}&maSach=${bookId}&tieuDe=${encodeURIComponent(title)}&noiDung=${encodeURIComponent(content.trim())}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã Gửi Báo Cáo Thành Công!',
+                        html: `Hệ thống đã gửi phản hồi đến <strong>Ban Quản Trị Thư Viện</strong>`,
+                        confirmButtonColor: '#ea580c'
+                    });
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể gửi phản hồi!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function showErrorAndBack(msg) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: msg,
+                confirmButtonText: 'Về Kho Sách'
+            }).then(() => {
+                window.location.href = '/reader/dashboard';
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+
+</html>

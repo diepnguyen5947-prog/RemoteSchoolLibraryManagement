@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Phiếu Mượn / Trả Sách - Thư Viện Trường Học</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+        }
+
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fa-solid fa-book-open-reader me-2 text-warning"></i>
+                THƯ VIỆN TRƯỜNG HỌC (RMI CLIENT)
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fa-solid fa-magnifying-glass me-1"></i> Tra Cứu Sách</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/phieu-muon"><i class="fa-solid fa-receipt me-1"></i> Quản Lý
+                            Phiếu Mượn</a>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <span class="badge bg-success mt-2 p-2"><i class="fa-solid fa-link me-1"></i> RMI Port:
+                            1099</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="container py-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1 text-dark">
+                    <i class="fa-solid fa-file-invoice me-2 text-warning"></i>Quản Lý Phiếu Mượn / Trả Sách
+                </h4>
+                <p class="text-muted mb-0">Theo dõi trạng thái mượn trả từ xa qua Remote Service & Stored Procedure SQL
+                    Server</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary rounded-pill shadow-sm" onclick="loadPhieuMuon()">
+                    <i class="fa-solid fa-rotate me-1"></i> Làm Mới Dữ Liệu
+                </button>
+                <a href="/" class="btn btn-primary rounded-pill shadow-sm">
+                    <i class="fa-solid fa-plus me-1"></i> Mượn Thêm Sách
+                </a>
+            </div>
+        </div>
+
+        <!-- Alert Notification Box -->
+        <div id="alertBox" class="alert d-none shadow-sm alert-dismissible fade show" role="alert">
+            <span id="alertMessage"></span>
+            <button type="button" class="btn-close" onclick="hideAlert()"></button>
+        </div>
+
+        <!-- Filter Options -->
+        <div class="card border-0 shadow-sm rounded-4 mb-3">
+            <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary active" id="filterAll"
+                        onclick="setFilter('all')">
+                        Tất cả (<span id="countAll">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="filterBorrowing"
+                        onclick="setFilter('borrowing')">
+                        Đang mượn (<span id="countBorrowing">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success" id="filterReturned"
+                        onclick="setFilter('returned')">
+                        Đã trả (<span id="countReturned">0</span>)
+                    </button>
+                </div>
+                <div class="text-muted small">
+                    <i class="fa-solid fa-circle-info me-1"></i> Bấm nút <strong>"Trả Sách"</strong> để kích hoạt SP
+                    <code>sp_TraSach</code> dưới SQL Server.
+                </div>
+            </div>
+        </div>
+
+        <!-- Loan Slips Table Card -->
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã Phiếu</th>
+                            <th>Độc Giả</th>
+                            <th>Cuốn Sách Mượn</th>
+                            <th>Ngày Mượn</th>
+                            <th>Hạn Trả</th>
+                            <th>Ngày Trả TT</th>
+                            <th>Trạng Thái</th>
+                            <th class="text-end pe-4">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="phieuMuonTableBody">
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                Đang tải danh sách phiếu mượn từ RMI Server...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let allPhieuMuon = [];
+        let currentFilter = 'all';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPhieuMuon();
+        });
+
+        async function loadPhieuMuon() {
+            try {
+                const res = await fetch('/api/phieu-muon');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    allPhieuMuon = result.data;
+                    updateCounts();
+                    renderTable();
+                } else {
+                    showAlert('danger', result.message || 'Không thể tải danh sách phiếu mượn!');
+                }
+            } catch (err) {
+                showAlert('danger', 'Lỗi kết nối Web Server: ' + err.message);
+            }
+        }
+
+        function updateCounts() {
+            const borrowing = allPhieuMuon.filter(p => p.trangThaiPhieu === 0).length;
+            const returned = allPhieuMuon.filter(p => p.trangThaiPhieu === 1).length;
+            document.getElementById('countAll').textContent = allPhieuMuon.length;
+            document.getElementById('countBorrowing').textContent = borrowing;
+            document.getElementById('countReturned').textContent = returned;
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.getElementById('filterAll').className = `btn btn-sm ${filter === 'all' ? 'btn-secondary active' : 'btn-outline-secondary'}`;
+            document.getElementById('filterBorrowing').className = `btn btn-sm ${filter === 'borrowing' ? 'btn-warning active' : 'btn-outline-warning'}`;
+            document.getElementById('filterReturned').className = `btn btn-sm ${filter === 'returned' ? 'btn-success active' : 'btn-outline-success'}`;
+            renderTable();
+        }
+
+        function renderTable() {
+            let list = allPhieuMuon;
+            if (currentFilter === 'borrowing') {
+                list = list.filter(p => p.trangThaiPhieu === 0);
+            } else if (currentFilter === 'returned') {
+                list = list.filter(p => p.trangThaiPhieu === 1);
+            }
+
+            const tbody = document.getElementById('phieuMuonTableBody');
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted">Không có phiếu mượn nào trong danh mục này.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            list.forEach(p => {
+                const isBorrowing = p.trangThaiPhieu === 0;
+                const statusBadge = isBorrowing
+                    ? `<span class="badge status-badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i> Đang mượn</span>`
+                    : `<span class="badge status-badge bg-success text-white"><i class="fa-solid fa-check-double me-1"></i> Đã trả</span>`;
+
+                const actionBtn = isBorrowing
+                    ? `<button class="btn btn-sm btn-success rounded-pill px-3 fw-semibold shadow-sm" onclick="handleReturnBook(${p.maPhieu}, '${escapeHtml(p.tenSach)}')">
+                         <i class="fa-solid fa-arrow-rotate-left me-1"></i> Trả Sách
+                       </button>`
+                    : `<span class="text-muted small"><i class="fa-solid fa-circle-check text-success me-1"></i> Hoàn tất</span>`;
+
+                const ngayTraThucTe = p.ngayTraThucTe ? p.ngayTraThucTe : '<span class="text-muted fst-italic">Chưa trả</span>';
+
+                html += `
+                    <tr>
+                        <td class="ps-4 fw-bold text-secondary">#${p.maPhieu}</td>
+                        <td>
+                            <div class="fw-semibold text-dark">${escapeHtml(p.tenDocGia)}</div>
+                            <small class="text-muted">Mã ĐG: #${p.maDocGia}</small>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-primary">${escapeHtml(p.tenSach)}</div>
+                            <small class="text-muted">Mã sách: #${p.maSach}</small>
+                        </td>
+                        <td><small class="text-muted">${p.ngayMuon}</small></td>
+                        <td><small class="fw-semibold text-danger">${p.ngayHenTra}</small></td>
+                        <td><small>${ngayTraThucTe}</small></td>
+                        <td>${statusBadge}</td>
+                        <td class="text-end pe-4">${actionBtn}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function handleReturnBook(maPhieu, tenSach) {
+            if (!confirm(`Bạn có chắc chắn muốn trả cuốn sách "${tenSach}" (Mã phiếu #${maPhieu}) không?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/tra-sach', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maPhieu=${encodeURIComponent(maPhieu)}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    showAlert('success', `<strong>Thành công!</strong> ${result.message}`);
+                    loadPhieuMuon(); // Tải lại danh sách phiếu mượn
+                } else {
+                    showAlert('danger', `<strong>Lỗi:</strong> ${result.message}`);
+                }
+            } catch (err) {
+                showAlert('danger', 'Lỗi kết nối khi gửi yêu cầu trả sách: ' + err.message);
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `alert alert-${type} shadow-sm alert-dismissible fade show`;
+            document.getElementById('alertMessage').innerHTML = message;
+            alertBox.classList.remove('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hideAlert() {
+            document.getElementById('alertBox').classList.add('d-none');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+
+</html>

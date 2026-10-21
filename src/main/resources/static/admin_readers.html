@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Độc Giả - Cổng Thủ Thư</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary-indigo: #4338ca;
+            --primary-emerald: #059669;
+            --primary-rose: #e11d48;
+        }
+
+        body {
+            background: url('/images/wave-bg.png');
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+        }
+
+        .sidebar {
+            min-height: 100vh;
+            background: #0f172a;
+            color: #e2e8f0;
+            width: 260px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-link-admin {
+            color: #94a3b8;
+            padding: 12px 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            border-radius: 10px;
+            margin: 4px 12px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-link-admin:hover,
+        .nav-link-admin.active {
+            color: #ffffff;
+            background: #4338ca;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+
+        .role-badge {
+            font-size: 0.8rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar d-flex flex-column">
+        <div class="sidebar-brand text-white">
+            <i class="fa-solid fa-book-journal-whills text-warning me-2"></i> THỦ THƯ QUẢN TRỊ
+        </div>
+        <div class="py-3 flex-grow-1">
+            <a href="/admin/dashboard" class="nav-link-admin">
+                <i class="fa-solid fa-chart-pie me-3"></i> Tổng Quan
+            </a>
+            <a href="/admin/books" class="nav-link-admin">
+                <i class="fa-solid fa-book me-3"></i> Quản Lý Sách
+            </a>
+            <a href="/admin/loans" class="nav-link-admin">
+                <i class="fa-solid fa-receipt me-3"></i> Quản Lý Mượn/Trả
+            </a>
+            <a href="/admin/loan-history" class="nav-link-admin">
+                <i class="fa-solid fa-clock-rotate-left me-3"></i> Lịch Sử Mượn Sách
+            </a>
+            <a href="/admin/readers" class="nav-link-admin active">
+                <i class="fa-solid fa-users me-3"></i> Quản Lý Độc Giả
+            </a>
+            <a href="/admin/feedback" class="nav-link-admin d-flex align-items-center">
+                <i class="fa-solid fa-bell me-3"></i> Phản Hồi & Báo Cáo
+                <span class="badge bg-danger rounded-pill ms-auto feedback-badge-unread" style="display:none;">0</span>
+            </a>
+            <div class="px-4 py-2 text-uppercase text-white-50" style="font-size: 0.75rem;">Hệ Thống</div>
+            <a href="/reader/dashboard" target="_blank" class="nav-link-admin">
+                <i class="fa-solid fa-arrow-up-right-from-square me-3"></i> Xem Cổng Độc Giả
+            </a>
+        </div>
+        <div class="p-3 border-top border-secondary">
+            <button class="btn btn-outline-danger w-100 rounded-pill btn-sm" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> Đăng Xuất
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Topbar -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold mb-1 text-dark">Quản Lý Danh Sách Độc Giả</h3>
+
+            </div>
+            <div>
+                <button class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm" onclick="openAddReaderModal()">
+                    <i class="fa-solid fa-user-plus me-1"></i> Cấp Tài Khoản Mới
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Card -->
+        <div class="glass-card p-3 mb-4">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-9">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i
+                                class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" id="searchInput" class="form-control border-0 bg-light"
+                            placeholder="Tìm kiếm độc giả theo họ tên, email hoặc số điện thoại..."
+                            onkeyup="filterReaders()">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-secondary w-100 rounded-pill" onclick="loadReaders()">
+                        <i class="fa-solid fa-rotate me-1"></i> Làm Mới Danh Sách
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="glass-card overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã Độc Giả</th>
+                            <th>Họ Và Tên</th>
+                            <th>Địa Chỉ Email</th>
+                            <th>Số Điện Thoại</th>
+                            <th>Vai Trò (Role)</th>
+                            <th>Trạng Thái Tài Khoản</th>
+                            <th class="pe-4 text-end">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="readersTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">Đang tải danh sách người dùng...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cấp Tài Khoản Mới -->
+    <div class="modal fade" id="readerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-user-plus me-2"></i> Cấp Tài Khoản Mới
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="readerForm" onsubmit="submitReaderForm(event)">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Họ Và Tên:</label>
+                            <input type="text" class="form-control" id="readerNameInput"
+                                placeholder="Ví dụ: Hoàng Văn Nam" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Địa Chỉ Email:</label>
+                            <input type="email" class="form-control" id="readerEmailInput"
+                                placeholder="nam.hv@school.edu.vn" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Mật Khẩu Khởi Tạo:</label>
+                            <input type="text" class="form-control" id="readerPassInput" value="Pass@123" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Số Điện Thoại:</label>
+                            <input type="text" class="form-control" id="readerPhoneInput" placeholder="0912345678">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Phân Quyền Vai Trò:</label>
+                            <select class="form-select" id="readerRoleSelect">
+                                <option value="READER" selected>Độc Giả (Học sinh / Sinh viên / Giáo viên)</option>
+                                <option value="LIBRARIAN">Thủ Thư (Quản trị viên thư viện)</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary px-4 rounded-pill"
+                                data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" id="saveReaderBtn"
+                                class="btn btn-primary px-4 rounded-pill fw-semibold">
+                                <i class="fa-solid fa-check me-1"></i> Xác Nhận Tạo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let allUsers = [];
+        let readerModalInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = localStorage.getItem('auth_user');
+            if (!userStr) {
+                window.location.href = '/login';
+                return;
+            }
+            const user = JSON.parse(userStr);
+            if (user.vaiTro !== 'LIBRARIAN') {
+                window.location.href = '/reader/dashboard';
+                return;
+            }
+
+            readerModalInstance = new bootstrap.Modal(document.getElementById('readerModal'));
+            loadReaders();
+            loadUnreadFeedbackBadge();
+        });
+
+        async function loadUnreadFeedbackBadge() {
+            try {
+                const res = await fetch('/api/admin/phan-hoi/dem-chua-xu-ly');
+                const r = await res.json();
+                if (r.success && r.data && r.data.chuaXuLy > 0) {
+                    document.querySelectorAll('.feedback-badge-unread').forEach(el => {
+                        el.textContent = r.data.chuaXuLy;
+                        el.style.display = 'inline-block';
+                    });
+                }
+            } catch (e) { }
+        }
+
+        async function loadReaders() {
+            try {
+                const res = await fetch('/api/doc-gia');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    allUsers = result.data;
+                    renderReaders(allUsers);
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể tải danh sách!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function renderReaders(users) {
+            const tbody = document.getElementById('readersTableBody');
+            if (users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted">Không tìm thấy người dùng nào.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            users.forEach(u => {
+                const isLib = u.vaiTro === 'LIBRARIAN';
+                const roleBadge = isLib
+                    ? `<span class="badge role-badge bg-danger text-white"><i class="fa-solid fa-user-shield me-1"></i> Thủ Thư</span>`
+                    : `<span class="badge role-badge bg-primary text-white"><i class="fa-solid fa-user-graduate me-1"></i> Độc Giả</span>`;
+
+                const isLocked = u.trangThaiTaiKhoan === 0 || u.isLocked;
+                const isLostReason = u.lyDoKhoa && u.lyDoKhoa.toUpperCase().includes('MẤT SÁCH');
+                const badgeLabel = isLostReason ? 'Bị khóa (Mất sách)' : 'Bị khóa (> 10 ngày quá hạn)';
+                const statusBadge = isLocked
+                    ? `<span class="badge bg-danger px-3 py-2 rounded-pill text-white shadow-sm" title="${escapeHtml(u.lyDoKhoa || 'Bị khóa')}"><i class="fa-solid fa-user-lock me-1"></i> ${badgeLabel}</span>
+                       ${u.lyDoKhoa ? `<div class="text-danger small mt-1 fw-semibold" style="font-size:0.75rem;"><i class="fa-solid fa-circle-exclamation me-1"></i>${escapeHtml(u.lyDoKhoa)}</div>` : ''}`
+                    : `<span class="badge bg-success px-3 py-2 rounded-pill text-white shadow-sm"><i class="fa-solid fa-circle-check me-1"></i> Hoạt động</span>`;
+
+                const actionBtn = isLocked
+                    ? `<button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-semibold" onclick="handleUnlockAccount(${u.maDocGia}, '${escapeHtml(u.hoTen)}')">
+                           <i class="fa-solid fa-lock-open me-1"></i> Mở khóa tài khoản
+                       </button>`
+                    : `<span class="text-muted small"><i class="fa-solid fa-check text-success me-1"></i> Bình thường</span>`;
+
+                html += `
+                    <tr class="${isLocked ? 'table-danger bg-opacity-25' : ''}">
+                        <td class="ps-4 fw-bold text-secondary">#${u.maDocGia}</td>
+                        <td class="fw-semibold text-dark">${escapeHtml(u.hoTen)}</td>
+                        <td><code>${escapeHtml(u.email)}</code></td>
+                        <td>${escapeHtml(u.soDienThoai || 'N/A')}</td>
+                        <td>${roleBadge}</td>
+                        <td>${statusBadge}</td>
+                        <td class="pe-4 text-end">${actionBtn}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function handleUnlockAccount(maDocGia, hoTen) {
+            const confirmRes = await Swal.fire({
+                title: 'Mở Khóa Tài Khoản?',
+                html: `Bạn có chắc chắn muốn mở khóa tài khoản cho độc giả: <br><strong class="text-primary">${escapeHtml(hoTen)} (#${maDocGia})</strong>?<br><br>
+                       <small class="text-muted"><i class="fa-solid fa-circle-info text-warning me-1"></i> Đảm bảo độc giả đã trả hết sách quá hạn và thanh toán đầy đủ phí phạt tại quầy trước khi mở khóa.</small>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-lock-open me-1"></i> Mở Khóa Ngay',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                const res = await fetch('/api/admin/doc-gia/mo-khoa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maDocGia=${maDocGia}`
+                });
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã Mở Khóa Thành Công!',
+                        text: result.message || 'Tài khoản độc giả đã được khôi phục trạng thái hoạt động.',
+                        timer: 1800,
+                        showConfirmButton: false
+                    });
+                    loadReaders();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Không Thể Mở Khóa',
+                        html: `<div class="text-danger fw-semibold">${escapeHtml(result.message || 'Không thể mở khóa tài khoản!')}</div>`,
+                        confirmButtonColor: '#e11d48'
+                    });
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function filterReaders() {
+            const kw = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filtered = allUsers.filter(u =>
+                u.hoTen.toLowerCase().includes(kw) ||
+                u.email.toLowerCase().includes(kw) ||
+                (u.soDienThoai && u.soDienThoai.includes(kw))
+            );
+            renderReaders(filtered);
+        }
+
+        function openAddReaderModal() {
+            document.getElementById('readerNameInput').value = '';
+            document.getElementById('readerEmailInput').value = '';
+            document.getElementById('readerPhoneInput').value = '';
+            document.getElementById('readerPassInput').value = 'Pass@123';
+            document.getElementById('readerRoleSelect').value = 'READER';
+            readerModalInstance.show();
+        }
+
+        async function submitReaderForm(e) {
+            e.preventDefault();
+            const hoTen = document.getElementById('readerNameInput').value.trim();
+            const email = document.getElementById('readerEmailInput').value.trim();
+            const matKhau = document.getElementById('readerPassInput').value.trim();
+            const soDienThoai = document.getElementById('readerPhoneInput').value.trim();
+            const vaiTro = document.getElementById('readerRoleSelect').value;
+            const saveBtn = document.getElementById('saveReaderBtn');
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang tạo...';
+
+            try {
+                const res = await fetch('/api/admin/readers/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `hoTen=${encodeURIComponent(hoTen)}&email=${encodeURIComponent(email)}&matKhau=${encodeURIComponent(matKhau)}&soDienThoai=${encodeURIComponent(soDienThoai)}&vaiTro=${encodeURIComponent(vaiTro)}`
+                });
+                const result = await res.json();
+                readerModalInstance.hide();
+
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành Công!',
+                        text: result.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        loadReaders();
+                    });
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể cấp tài khoản!', 'error');
+                }
+            } catch (err) {
+                readerModalInstance.hide();
+                Swal.fire('Lỗi', 'Lỗi: ' + err.message, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Xác Nhận Tạo';
+            }
+        }
+
+        function handleLogout() {
+            Swal.fire({
+                title: 'Đăng Xuất?',
+                text: 'Bạn có chắc chắn muốn đăng xuất?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4338ca',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    localStorage.clear();
+                    window.location.href = '/login';
+                }
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+
+</html>

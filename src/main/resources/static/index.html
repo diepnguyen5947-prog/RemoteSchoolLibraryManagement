@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra Cứu & Mượn Sách - Thư Viện Trường Học (Remote RMI Client)</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .hero-banner {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .card-book {
+            border: none;
+            border-radius: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .card-book:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        .search-box {
+            position: relative;
+        }
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+        }
+        .search-box input {
+            padding-left: 45px;
+            border-radius: 25px;
+            height: 48px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fa-solid fa-book-open-reader me-2 text-warning"></i>
+                THƯ VIỆN TRƯỜNG HỌC (RMI CLIENT)
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-span"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="fa-solid fa-magnifying-glass me-1"></i> Tra Cứu & Mượn Sách</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/phieu-muon"><i class="fa-solid fa-receipt me-1"></i> Quản Lý Phiếu Mượn</a>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <span class="badge bg-success mt-2 p-2"><i class="fa-solid fa-link me-1"></i> RMI Port: 1099</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="container py-4">
+
+        <!-- Hero Header -->
+        <div class="hero-banner d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h3 class="mb-1"><i class="fa-solid fa-graduation-cap me-2"></i> Hệ Thống Quản Lý Mượn/Trả Sách Thư Viện</h3>
+                <p class="mb-0 text-white-50">Web Client kết nối tới RMI Server qua Java Remote Method Invocation & SQL Server 2022</p>
+            </div>
+            <div class="mt-3 mt-md-0">
+                <a href="/phieu-muon" class="btn btn-warning fw-semibold shadow-sm">
+                    <i class="fa-solid fa-list-check me-1"></i> Xem Phiếu Đang Mượn
+                </a>
+            </div>
+        </div>
+
+        <!-- Alert Notification Box -->
+        <div id="alertBox" class="alert d-none shadow-sm alert-dismissible fade show" role="alert">
+            <span id="alertMessage"></span>
+            <button type="button" class="btn-close" onclick="hideAlert()"></button>
+        </div>
+
+        <!-- Search & Filter Card -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-9">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" class="form-control" 
+                                   placeholder="Nhập tên sách hoặc tên tác giả cần tìm (ví dụ: C++, AI, SQL, Vũ Trọng Phụng...)" 
+                                   onkeyup="handleSearchKey(event)">
+                        </div>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button class="btn btn-primary w-100 py-2 rounded-pill fw-semibold" onclick="searchBooks()">
+                            <i class="fa-solid fa-search me-1"></i> Tìm Kiếm
+                        </button>
+                        <button class="btn btn-outline-secondary py-2 rounded-pill" onclick="resetSearch()" title="Tải lại tất cả">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Books List Section -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-dark">
+                <i class="fa-solid fa-book-open me-2 text-primary"></i>Danh Sách Sách Trong Thư Viện
+                <span id="bookCountBadge" class="badge bg-secondary ms-2">Đang tải...</span>
+            </h5>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-outline-primary active" id="viewCardBtn" onclick="setViewMode('card')">
+                    <i class="fa-solid fa-grip me-1"></i> Dạng Thẻ
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="viewTableBtn" onclick="setViewMode('table')">
+                    <i class="fa-solid fa-table-list me-1"></i> Dạng Bảng
+                </button>
+            </div>
+        </div>
+
+        <!-- Container for Card View -->
+        <div id="bookCardsContainer" class="row g-3">
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Đang truy xuất dữ liệu từ RMI Server...</p>
+            </div>
+        </div>
+
+        <!-- Container for Table View -->
+        <div id="bookTableContainer" class="card border-0 shadow-sm rounded-4 d-none">
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã</th>
+                            <th>Tên Cuốn Sách</th>
+                            <th>Tác Giả</th>
+                            <th>Năm XB</th>
+                            <th>Trạng Thái</th>
+                            <th class="text-end pe-4">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal Mượn Sách -->
+    <div class="modal fade" id="borrowModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-book-bookmark me-2"></i> Xác Nhận Mượn Sách
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Book Info Preview -->
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <h6 class="fw-bold text-primary mb-1" id="modalBookTitle">-</h6>
+                        <div class="text-muted small">
+                            <span class="me-3"><i class="fa-solid fa-user-pen me-1"></i> <span id="modalBookAuthor">-</span></span>
+                            <span><i class="fa-solid fa-hashtag me-1"></i> Mã sách: <strong id="modalBookId">-</strong></span>
+                        </div>
+                    </div>
+
+                    <form id="borrowForm" onsubmit="submitBorrowForm(event)">
+                        <input type="hidden" id="borrowBookId">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Chọn Độc Giả:</label>
+                            <select class="form-select" id="borrowReaderSelect" required>
+                                <option value="" disabled selected>-- Đang tải danh sách độc giả... --</option>
+                            </select>
+                            <div class="form-text">Được nạp trực tiếp từ bảng <code>DocGia</code> trong SQL Server.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Thời Gian Mượn (Số ngày):</label>
+                            <input type="number" class="form-control" id="borrowDays" value="14" min="1" max="60" required>
+                            <div class="form-text">Mặc định 14 ngày (2 tuần).</div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" id="submitBorrowBtn" class="btn btn-primary px-4 rounded-pill fw-semibold">
+                                <i class="fa-solid fa-check me-1"></i> Đồng Ý Mượn
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let currentBooks = [];
+        let readersList = [];
+        let viewMode = 'card';
+        let borrowModalInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            borrowModalInstance = new bootstrap.Modal(document.getElementById('borrowModal'));
+            loadBooks();
+            loadReaders();
+        });
+
+        // Tải danh sách sách qua REST API
+        async function loadBooks() {
+            try {
+                const res = await fetch('/api/sach');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    currentBooks = result.data;
+                    renderBooks();
+                } else {
+                    showAlert('danger', result.message || 'Không thể tải danh sách sách!');
+                }
+            } catch (err) {
+                showAlert('danger', 'Lỗi kết nối tới Web Server: ' + err.message);
+            }
+        }
+
+        // Tải danh sách độc giả phục vụ dropdown mượn sách
+        async function loadReaders() {
+            try {
+                const res = await fetch('/api/doc-gia');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    readersList = result.data;
+                    const select = document.getElementById('borrowReaderSelect');
+                    select.innerHTML = '<option value="" disabled selected>-- Chọn độc giả mượn sách --</option>';
+                    readersList.forEach(r => {
+                        select.innerHTML += `<option value="${r.maDocGia}">${r.hoTen} (Mã: #${r.maDocGia} - ${r.email})</option>`;
+                    });
+                }
+            } catch (err) {
+                console.error('Lỗi tải độc giả:', err);
+            }
+        }
+
+        // Tìm kiếm sách
+        async function searchBooks() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            try {
+                const res = await fetch('/api/sach/tim-kiem?keyword=' + encodeURIComponent(keyword));
+                const result = await res.json();
+                if (result.success && result.data) {
+                    currentBooks = result.data;
+                    renderBooks();
+                }
+            } catch (err) {
+                showAlert('danger', 'Lỗi tìm kiếm: ' + err.message);
+            }
+        }
+
+        function handleSearchKey(e) {
+            if (e.key === 'Enter') {
+                searchBooks();
+            }
+        }
+
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            loadBooks();
+        }
+
+        // Hiển thị danh sách sách theo dạng thẻ hoặc bảng
+        function renderBooks() {
+            document.getElementById('bookCountBadge').textContent = `${currentBooks.length} cuốn`;
+
+            if (currentBooks.length === 0) {
+                document.getElementById('bookCardsContainer').innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <i class="fa-solid fa-circle-exclamation fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">Không tìm thấy cuốn sách nào phù hợp!</h6>
+                    </div>
+                `;
+                document.getElementById('bookTableBody').innerHTML = `
+                    <tr><td colspan="6" class="text-center py-4 text-muted">Không có dữ liệu sách phù hợp</td></tr>
+                `;
+                return;
+            }
+
+            // Render Card View
+            let cardHtml = '';
+            currentBooks.forEach(b => {
+                const isAvailable = b.trangThai === 0;
+                const isHold = b.trangThai === 2;
+                const isLost = (b.trangThai === -1 || b.trangThai === -2);
+                let badgeClass = 'bg-danger';
+                let badgeText = 'Đang mượn';
+                let badgeIcon = 'fa-lock';
+                if (isAvailable) {
+                    badgeClass = 'bg-success';
+                    badgeText = 'Sẵn sàng';
+                    badgeIcon = 'fa-circle-check';
+                } else if (isHold) {
+                    badgeClass = 'bg-warning text-dark';
+                    badgeText = 'Đang giữ chỗ';
+                    badgeIcon = 'fa-clock';
+                } else if (isLost) {
+                    badgeClass = 'bg-secondary';
+                    badgeText = 'Tạm ngưng';
+                    badgeIcon = 'fa-triangle-exclamation';
+                }
+
+                cardHtml += `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card card-book h-100" style="cursor: pointer;" onclick="window.location.href='/book-detail?id=${b.maSach}'" title="Nhấp để xem chi tiết cuốn sách">
+                            <div class="card-body p-4 d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-light text-secondary border">Mã: #${b.maSach}</span>
+                                    <span class="badge status-badge ${badgeClass} text-white">
+                                        <i class="fa-solid ${badgeIcon} me-1"></i> ${badgeText}
+                                    </span>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-2">${escapeHtml(b.tenSach)}</h6>
+                                <p class="text-muted small mb-1"><i class="fa-solid fa-feather-pointed me-1"></i> Tác giả: <strong>${escapeHtml(b.tacGia)}</strong></p>
+                                <p class="text-muted small mb-3"><i class="fa-solid fa-calendar me-1"></i> Năm xuất bản: <strong>${b.namXuatBan}</strong></p>
+                                <div class="mt-auto pt-2 border-top d-flex gap-2">
+                                    <a href="/book-detail?id=${b.maSach}" class="btn btn-outline-secondary btn-sm flex-fill rounded-pill" onclick="event.stopPropagation()">
+                                        <i class="fa-solid fa-circle-info me-1"></i> Chi tiết
+                                    </a>
+                                    ${isAvailable ? `
+                                        <button class="btn btn-primary btn-sm flex-fill rounded-pill" onclick="event.stopPropagation(); openBorrowModal(${b.maSach})">
+                                            <i class="fa-solid fa-hand-holding-hand me-1"></i> Mượn
+                                        </button>
+                                    ` : isHold ? `
+                                        <button class="btn btn-warning btn-sm flex-fill rounded-pill text-dark" disabled onclick="event.stopPropagation()">
+                                            <i class="fa-solid fa-clock me-1"></i> Giữ chỗ
+                                        </button>
+                                    ` : isLost ? `
+                                        <button class="btn btn-secondary btn-sm flex-fill rounded-pill" disabled onclick="event.stopPropagation()">
+                                            <i class="fa-solid fa-ban me-1"></i> Tạm ngưng
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-secondary btn-sm flex-fill rounded-pill" disabled onclick="event.stopPropagation()">
+                                            <i class="fa-solid fa-lock me-1"></i> Đang mượn
+                                        </button>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('bookCardsContainer').innerHTML = cardHtml;
+
+            // Render Table View
+            let tableHtml = '';
+            currentBooks.forEach(b => {
+                const isAvailable = b.trangThai === 0;
+                const isHold = b.trangThai === 2;
+                const isLost = (b.trangThai === -1 || b.trangThai === -2);
+                let badgeClass = 'bg-danger';
+                let badgeText = 'Đang mượn';
+                if (isAvailable) {
+                    badgeClass = 'bg-success';
+                    badgeText = 'Sẵn sàng';
+                } else if (isHold) {
+                    badgeClass = 'bg-warning text-dark';
+                    badgeText = 'Đang giữ chỗ';
+                } else if (isLost) {
+                    badgeClass = 'bg-secondary text-white';
+                    badgeText = 'Tạm ngưng';
+                }
+
+                tableHtml += `
+                    <tr style="cursor: pointer;" onclick="window.location.href='/book-detail?id=${b.maSach}'" title="Nhấp để xem chi tiết cuốn sách">
+                        <td class="ps-4 fw-bold text-secondary">#${b.maSach}</td>
+                        <td class="fw-semibold text-dark">
+                            <a href="/book-detail?id=${b.maSach}" class="text-decoration-none text-dark fw-bold" onclick="event.stopPropagation()">
+                                ${escapeHtml(b.tenSach)}
+                            </a>
+                        </td>
+                        <td>${escapeHtml(b.tacGia)}</td>
+                        <td>${b.namXuatBan}</td>
+                        <td><span class="badge status-badge ${badgeClass}">${badgeText}</span></td>
+                        <td class="text-end pe-4" onclick="event.stopPropagation()">
+                            <a href="/book-detail?id=${b.maSach}" class="btn btn-outline-secondary btn-sm rounded-pill me-1">
+                                <i class="fa-solid fa-circle-info me-1"></i> Chi tiết
+                            </a>
+                            ${isAvailable ? `
+                                <button class="btn btn-primary btn-sm px-3 rounded-pill fw-semibold" onclick="openBorrowModal(${b.maSach})">
+                                    <i class="fa-solid fa-hand-holding-hand me-1"></i> Mượn
+                                </button>
+                            ` : `
+                                <button class="btn btn-secondary btn-sm px-3 rounded-pill" disabled>
+                                    <i class="fa-solid fa-ban me-1"></i> Không khả dụng
+                                </button>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('bookTableBody').innerHTML = tableHtml;
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            if (mode === 'card') {
+                document.getElementById('bookCardsContainer').classList.remove('d-none');
+                document.getElementById('bookTableContainer').classList.add('d-none');
+                document.getElementById('viewCardBtn').classList.add('active');
+                document.getElementById('viewTableBtn').classList.remove('active');
+            } else {
+                document.getElementById('bookCardsContainer').classList.add('d-none');
+                document.getElementById('bookTableContainer').classList.remove('d-none');
+                document.getElementById('viewCardBtn').classList.remove('active');
+                document.getElementById('viewTableBtn').classList.add('active');
+            }
+        }
+
+        // Mở Modal Mượn Sách
+        function openBorrowModal(maSach) {
+            const book = currentBooks.find(b => b.maSach === maSach);
+            if (!book) return;
+
+            document.getElementById('borrowBookId').value = book.maSach;
+            document.getElementById('modalBookId').textContent = book.maSach;
+            document.getElementById('modalBookTitle').textContent = book.tenSach;
+            document.getElementById('modalBookAuthor').textContent = book.tacGia;
+            document.getElementById('borrowDays').value = 14;
+
+            borrowModalInstance.show();
+        }
+
+        // Xử lý gửi biểu mẫu Mượn sách
+        async function submitBorrowForm(e) {
+            e.preventDefault();
+            const maSach = document.getElementById('borrowBookId').value;
+            const maDocGia = document.getElementById('borrowReaderSelect').value;
+            const soNgayMuon = document.getElementById('borrowDays').value;
+
+            if (!maDocGia) {
+                alert('Vui lòng chọn độc giả!');
+                return;
+            }
+
+            const btn = document.getElementById('submitBorrowBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+
+            try {
+                const res = await fetch('/api/muon-sach', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maDocGia=${encodeURIComponent(maDocGia)}&maSach=${encodeURIComponent(maSach)}&soNgayMuon=${encodeURIComponent(soNgayMuon)}`
+                });
+
+                const result = await res.json();
+                borrowModalInstance.hide();
+
+                if (result.success) {
+                    showAlert('success', `<strong>Thành công!</strong> ${result.message}`);
+                    loadBooks(); // Cập nhật lại trạng thái sách tức thời
+                } else {
+                    showAlert('danger', `<strong>Lỗi:</strong> ${result.message}`);
+                    loadBooks();
+                }
+            } catch (err) {
+                showAlert('danger', 'Lỗi kết nối khi gửi yêu cầu mượn: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Đồng Ý Mượn';
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `alert alert-${type} shadow-sm alert-dismissible fade show`;
+            document.getElementById('alertMessage').innerHTML = message;
+            alertBox.classList.remove('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hideAlert() {
+            document.getElementById('alertBox').classList.add('d-none');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

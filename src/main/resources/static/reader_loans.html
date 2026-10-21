@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phiếu Mượn Của Tôi - Cổng Độc Giả</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary-indigo: #4338ca;
+            --primary-emerald: #059669;
+            --primary-rose: #e11d48;
+        }
+
+        body {
+            background: url('/images/wave-bg.png');
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+        }
+
+        .navbar-custom {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-banner {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+            color: white;
+            padding: 35px 30px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(49, 46, 129, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.06);
+            pointer-events: none;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 18px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-weight: 600;
+        }
+
+        @keyframes pulseRed {
+            0% {
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 8px rgba(225, 29, 72, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0);
+            }
+        }
+
+        .pulse-badge {
+            animation: pulseRed 1.8s infinite;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/reader/dashboard">
+                <i class="fa-solid fa-book-open-reader me-2 text-warning"></i> THƯ VIỆN TRƯỜNG HỌC
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navContent">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold" href="/reader/dashboard">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> Tra Cứu Sách
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active fw-semibold" href="/reader/my-loans">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i> Phiếu Mượn Của Tôi
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold text-warning" href="/reader/wishlist">
+                            <i class="fa-solid fa-heart me-1 text-danger"></i> Sách Yêu Thích
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-white-50 small">
+                        <i class="fa-solid fa-user-graduate text-warning me-1"></i> Độc giả: <strong id="navUserName"
+                            class="text-white">-</strong>
+                    </div>
+                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="handleLogout()">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> Đăng Xuất
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="container py-4">
+
+        <!-- Hero Banner -->
+        <div class="hero-banner d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="fa-solid fa-receipt text-warning me-2"></i> Phiếu Mượn & Lịch Sử Trả
+                    Sách</h3>
+                <p class="mb-0 text-white-50">Theo dõi danh sách các cuốn sách đang mượn và lịch sử hoàn trả</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-light rounded-pill px-3 shadow-sm fw-semibold" onclick="loadMyLoans()">
+                    <i class="fa-solid fa-rotate me-1"></i> Tải Lại
+                </button>
+                <a href="/reader/dashboard" class="btn btn-warning fw-semibold rounded-pill px-4 shadow-sm text-dark">
+                    <i class="fa-solid fa-plus me-1"></i> Mượn Sách Thêm
+                </a>
+            </div>
+        </div>
+
+        <!-- Alert Banner if Account is Locked (minimal & compact) -->
+        <div id="accountLockBanner" class="d-none"></div>
+
+        <!-- Filter Bar -->
+        <div class="glass-card p-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="btn-group flex-wrap" role="group">
+                <button type="button" class="btn btn-sm btn-primary active" id="filterAll" onclick="setFilter('all')">
+                    Tất cả (<span id="countAll">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning" id="filterHold"
+                    onclick="setFilter('hold')">
+                    <i class="fa-solid fa-clock me-1"></i> Chờ đến lấy (<span id="countHold">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="filterBorrowing"
+                    onclick="setFilter('borrowing')">
+                    Đang mượn (<span id="countBorrowing">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="filterOverdue"
+                    onclick="setFilter('overdue')">
+                    Quá hạn (<span id="countOverdue">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="filterLost" onclick="setFilter('lost')">
+                    <i class="fa-solid fa-book-skull me-1"></i> Báo mất / Đền bù (<span id="countLost">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-success" id="filterReturned"
+                    onclick="setFilter('returned')">
+                    Đã trả / Hủy (<span id="countReturned">0</span>)
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="glass-card overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã Phiếu</th>
+                            <th>Cuốn Sách Mượn</th>
+                            <th>Ngày Mượn</th>
+                            <th>Hạn Trả</th>
+                            <th>Ngày Trả TT</th>
+                            <th>Tình Trạng & Phạt / Đền Bù</th>
+                            <th class="text-end pe-4">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myLoansTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                Đang tải danh sách phiếu mượn cá nhân...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let currentUser = null;
+        let myLoans = [];
+        let currentFilter = 'all';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = localStorage.getItem('auth_user');
+            if (!userStr) {
+                window.location.href = '/login';
+                return;
+            }
+            currentUser = JSON.parse(userStr);
+            document.getElementById('navUserName').textContent = currentUser.hoTen;
+
+            loadMyLoans();
+        });
+
+        async function loadMyLoans(silent = false) {
+            try {
+                const res = await fetch('/api/phieu-muon?maDocGia=' + currentUser.maDocGia);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    myLoans = result.data;
+                    updateCounts();
+                    renderTable();
+                    checkAccountLockBanner();
+                } else if (!silent) {
+                    Swal.fire('Lỗi', result.message || 'Không thể tải phiếu mượn!', 'error');
+                }
+            } catch (err) {
+                if (!silent) {
+                    Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+                }
+            }
+        }
+
+        function formatDeadline(dateStr) {
+            if (!dateStr) return '';
+            try {
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                const MM = String(d.getMonth() + 1).padStart(2, '0');
+                return `${hh}:${mm} ${dd}/${MM}`;
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        async function checkAccountLockBanner() {
+            try {
+                const res = await fetch(`/api/reader/status?maDocGia=${currentUser.maDocGia}`);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    currentUser = { ...currentUser, ...result.data };
+                    localStorage.setItem('auth_user', JSON.stringify(currentUser));
+                }
+            } catch (e) { }
+
+            const hasLostBook = myLoans.some(p => p.trangThaiPhieu === 4);
+            const hasOverdueOver10 = myLoans.some(p => p.trangThaiPhieu === 1 && p.soNgayQuaHan > 10);
+            const isLocked = (currentUser && (currentUser.isLocked || currentUser.trangThaiTaiKhoan === 0)) || hasLostBook || hasOverdueOver10;
+            const banner = document.getElementById('accountLockBanner');
+            if (banner) {
+                if (isLocked) {
+                    let lockTitle = 'TÀI KHOẢN ĐANG BỊ KHOÁ DO CÓ SÁCH QUÁ HẠN > 10 NGÀY';
+                    if (hasLostBook || (currentUser && currentUser.lyDoKhoa && currentUser.lyDoKhoa.toUpperCase().includes('MẤT SÁCH'))) {
+                        lockTitle = 'TÀI KHOẢN ĐANG BỊ KHOÁ DO MẤT SÁCH';
+                    }
+                    banner.innerHTML = `
+                        <div class="d-flex align-items-center w-100 py-1">
+                            <i class="fa-solid fa-ban text-danger fa-lg me-2"></i>
+                            <span class="fw-bold text-danger fs-6">${lockTitle}</span>
+                        </div>
+                    `;
+                    banner.className = 'alert alert-danger shadow-sm border-2 border-danger rounded-4 p-2 px-3 mb-3 d-flex align-items-center';
+                } else {
+                    banner.classList.add('d-none');
+                    banner.classList.remove('d-flex');
+                }
+            }
+        }
+
+        function updateCounts() {
+            const hold = myLoans.filter(p => p.trangThaiPhieu === 0).length;
+            const borrowing = myLoans.filter(p => p.trangThaiPhieu === 1).length;
+            const overdue = myLoans.filter(p => p.trangThaiPhieu === 1 && (p.isQuaHan || p.soNgayQuaHan > 0)).length;
+            const lost = myLoans.filter(p => p.trangThaiPhieu === 4 || p.trangThaiPhieu === 5).length;
+            const returned = myLoans.filter(p => p.trangThaiPhieu === 2 || p.trangThaiPhieu === 3).length;
+
+            if (document.getElementById('countAll')) document.getElementById('countAll').textContent = myLoans.length;
+            if (document.getElementById('countHold')) document.getElementById('countHold').textContent = hold;
+            if (document.getElementById('countBorrowing')) document.getElementById('countBorrowing').textContent = borrowing;
+            if (document.getElementById('countOverdue')) document.getElementById('countOverdue').textContent = overdue;
+            if (document.getElementById('countLost')) document.getElementById('countLost').textContent = lost;
+            if (document.getElementById('countReturned')) document.getElementById('countReturned').textContent = returned;
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.getElementById('filterAll').className = `btn btn-sm ${filter === 'all' ? 'btn-primary active' : 'btn-outline-primary'}`;
+            if (document.getElementById('filterHold')) {
+                document.getElementById('filterHold').className = `btn btn-sm ${filter === 'hold' ? 'btn-warning active' : 'btn-outline-warning'}`;
+            }
+            document.getElementById('filterBorrowing').className = `btn btn-sm ${filter === 'borrowing' ? 'btn-primary active' : 'btn-outline-primary'}`;
+            document.getElementById('filterOverdue').className = `btn btn-sm ${filter === 'overdue' ? 'btn-danger active' : 'btn-outline-danger'}`;
+            document.getElementById('filterLost').className = `btn btn-sm ${filter === 'lost' ? 'btn-danger active' : 'btn-outline-danger'}`;
+            document.getElementById('filterReturned').className = `btn btn-sm ${filter === 'returned' ? 'btn-success active' : 'btn-outline-success'}`;
+            renderTable();
+        }
+
+        function renderTable() {
+            let list = myLoans;
+            if (currentFilter === 'hold') {
+                list = list.filter(p => p.trangThaiPhieu === 0);
+            } else if (currentFilter === 'borrowing') {
+                list = list.filter(p => p.trangThaiPhieu === 1);
+            } else if (currentFilter === 'overdue') {
+                list = list.filter(p => p.trangThaiPhieu === 1 && (p.isQuaHan || p.soNgayQuaHan > 0));
+            } else if (currentFilter === 'lost') {
+                list = list.filter(p => p.trangThaiPhieu === 4 || p.trangThaiPhieu === 5);
+            } else if (currentFilter === 'returned') {
+                list = list.filter(p => p.trangThaiPhieu === 2 || p.trangThaiPhieu === 3);
+            }
+
+            const tbody = document.getElementById('myLoansTableBody');
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted">Không có phiếu mượn nào trong mục này.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            list.forEach(p => {
+                const isHold = p.trangThaiPhieu === 0;
+                const isBorrowing = p.trangThaiPhieu === 1;
+                const isReturned = p.trangThaiPhieu === 2;
+                const isCanceled = p.trangThaiPhieu === 3;
+                const isLost = p.trangThaiPhieu === 4;
+                const isSettled = p.trangThaiPhieu === 5;
+                const isOverdue = isBorrowing && (p.isQuaHan || p.soNgayQuaHan > 0);
+
+                let statusBadge = '';
+                let actionBtn = '';
+
+                if (isHold) {
+                    const hanChot = formatDeadline(p.ngayHetHanGiu);
+                    statusBadge = `
+                        <span class="badge status-badge bg-warning text-dark shadow-sm">
+                            <i class="fa-solid fa-clock me-1"></i> Chờ đến lấy (Hạn chót: ${hanChot || '24h'})
+                        </span>
+                        <div class="text-secondary small mt-1">
+                            <i class="fa-solid fa-store me-1"></i> Đến quầy nhận sách
+                        </div>
+                    `;
+                    actionBtn = `
+                        <button class="btn btn-sm btn-outline-warning rounded-pill px-3" disabled title="Vui lòng đến quầy thư viện để nhận sách và Thủ thư sẽ giao sách!">
+                            <i class="fa-solid fa-hand-holding me-1"></i> Chờ Đến Lấy
+                        </button>
+                    `;
+                } else if (isLost) {
+                    const tongDenBu = p.tienDenBu > 0 ? p.tienDenBu : ((p.tienPhat || 0) + (p.giaTienSach || 50000));
+                    statusBadge = `
+                        <span class="badge status-badge bg-danger text-white shadow-sm pulse-badge">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Báo mất / Chờ đền bù
+                        </span>
+                        <div class="text-danger small fw-bold mt-1">
+                            <i class="fa-solid fa-money-bill-wave me-1"></i> Đền bù: ${Number(tongDenBu).toLocaleString('vi-VN')} đ
+                        </div>
+                        <div class="text-muted small" style="font-size:0.75rem;">(Phạt: ${Number(p.tienPhat).toLocaleString('vi-VN')}đ + Giá sách: ${Number(p.giaTienSach || 50000).toLocaleString('vi-VN')}đ)</div>
+                    `;
+                    actionBtn = `
+                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm" disabled title="Tài khoản của bạn đang bị khóa do chưa hoàn tất đền bù sách mất. Vui lòng nộp phạt tại quầy thư viện!">
+                            <i class="fa-solid fa-lock me-1"></i> Chờ Nộp Đền Bù
+                        </button>
+                    `;
+                } else if (isSettled) {
+                    statusBadge = `
+                        <span class="badge status-badge bg-secondary text-white">
+                            <i class="fa-solid fa-receipt me-1"></i> Đã đền bù hoàn tất
+                        </span>
+                        <div class="text-muted small mt-1">Đã nộp: ${Number(p.tienDenBu).toLocaleString('vi-VN')} đ</div>
+                    `;
+                    actionBtn = `<span class="text-muted small"><i class="fa-solid fa-circle-check text-success me-1"></i> Đã chốt đền bù</span>`;
+                } else if (isBorrowing) {
+                    if (isOverdue) {
+                        const isOver10 = p.soNgayQuaHan > 10;
+                        statusBadge = `
+                            <span class="badge bg-danger status-badge pulse-badge text-white">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Quá hạn ${p.soNgayQuaHan} ngày
+                            </span>
+                            ${isOver10 ? `
+                                <div class="badge bg-danger text-white border border-danger p-1 mt-1 small d-block shadow-sm">
+                                    <i class="fa-solid fa-lock me-1"></i> Khóa tài khoản (&gt; 10 ngày)
+                                </div>
+                            ` : ''}
+                            <div class="text-danger small fw-bold mt-1">
+                                <i class="fa-solid fa-coins me-1"></i> Phạt tạm tính: ${Number(p.tienPhat).toLocaleString('vi-VN')} đ
+                            </div>
+                        `;
+                    } else {
+                        statusBadge = `
+                            <span class="badge status-badge bg-primary text-white">
+                                <i class="fa-solid fa-book-open-reader me-1"></i> Bình thường
+                            </span>
+                            <div class="text-success small mt-1"><i class="fa-solid fa-calendar-check me-1"></i> Trong hạn</div>
+                        `;
+                    }
+                    actionBtn = `
+                        <div class="d-flex justify-content-end gap-1 flex-wrap">
+
+                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold shadow-sm" onclick="handleReportLost(${p.maPhieu}, '${escapeHtml(p.tenSach)}', ${p.soNgayQuaHan}, ${p.tienPhat}, ${p.giaTienSach || 50000})">
+                                <i class="fa-solid fa-book-skull me-1"></i> Báo Mất Sách
+                            </button>
+                        </div>
+                    `;
+                } else if (isCanceled) {
+                    statusBadge = `
+                        <span class="badge status-badge bg-secondary text-white">
+                            <i class="fa-solid fa-ban me-1"></i> Đã hủy (Quá hạn 24h)
+                        </span>
+                    `;
+                    actionBtn = `<span class="text-muted small"><i class="fa-solid fa-clock-rotate-left me-1"></i> Quá hạn lấy</span>`;
+                } else {
+                    statusBadge = `
+                        <span class="badge status-badge bg-success text-white">
+                            <i class="fa-solid fa-check-double me-1"></i> Đã trả
+                        </span>
+                        ${p.tienPhat > 0 ? `<div class="text-danger small mt-1">Tiền phạt: ${Number(p.tienPhat).toLocaleString('vi-VN')} đ</div>` : ''}
+                    `;
+                    actionBtn = `<span class="text-muted small"><i class="fa-solid fa-circle-check text-success me-1"></i> Hoàn tất</span>`;
+                }
+
+                html += `
+                    <tr class="${isLost ? 'table-danger bg-opacity-25' : (isHold ? 'table-warning bg-opacity-10' : '')}">
+                        <td class="ps-4 fw-bold text-secondary">#${p.maPhieu}</td>
+                        <td>
+                            <strong class="text-dark">${escapeHtml(p.tenSach)}</strong>
+                            <div class="text-muted small">Mã sách: #${p.maSach} • Giá bìa: ${Number(p.giaTienSach || 50000).toLocaleString('vi-VN')} đ</div>
+                        </td>
+                        <td>${isHold ? (p.ngayMuon || 'Đăng ký online') : (p.ngayMuon || '-')}</td>
+                        <td class="${isOverdue && !isReturned && !isSettled && !isCanceled ? 'text-danger fw-bold' : ''}">
+                            ${p.ngayHenTra || '-'}
+                        </td>
+                        <td>${p.ngayTraThucTe ? `<span class="text-success">${p.ngayTraThucTe}</span>` : '<span class="text-muted">Chưa trả</span>'}</td>
+                        <td>${statusBadge}</td>
+                        <td class="text-end pe-4">${actionBtn}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        async function handleReportLost(maPhieu, tenSach, soNgayQuaHan, tienPhat, giaTienSach) {
+            const phat = Number(tienPhat) > 0 ? Number(tienPhat) : 0;
+            const gia = Number(giaTienSach) > 0 ? Number(giaTienSach) : 50000;
+            const tongDenBu = phat + gia;
+
+            const modalHtml = `
+                <div class="text-start">
+                    <p class="mb-2">Bạn đang yêu cầu <strong>Báo làm mất cuốn sách</strong> mượn từ thư viện:</p>
+                    <div class="p-2 bg-light rounded border mb-3">
+                        <div class="fw-bold text-primary fs-6">${escapeHtml(tenSach)}</div>
+                        <div class="text-muted small">Mã phiếu mượn: #${maPhieu}</div>
+                    </div>
+                    <div class="card bg-white border p-3 mb-3 shadow-sm rounded-3">
+                        <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-calculator text-danger me-2"></i>Bảng Kê Chi Phí Bồi Thường:</h6>
+                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                            <span>Tiền phạt quá hạn (${soNgayQuaHan} ngày):</span>
+                            <span class="fw-bold text-danger">${phat.toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                            <span>Giá niêm yết cuốn sách:</span>
+                            <span class="fw-bold text-dark">${gia.toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
+                        <div class="d-flex justify-content-between pt-2 fw-bold text-danger fs-6">
+                            <span>TỔNG TIỀN PHẢI ĐỀN BÙ:</span>
+                            <span>${tongDenBu.toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning small mb-0 border-0 rounded-3">
+                        <i class="fa-solid fa-triangle-exclamation text-danger me-1"></i> <strong>LƯU Ý HỆ THỐNG:</strong><br>
+                        • Hệ thống sẽ <strong>dừng tính tiền phạt theo ngày</strong> ngay lập tức.<br>
+                        • <strong>Tài khoản độc giả sẽ bị tạm khóa</strong> cho đến khi bạn hoàn tất nộp tiền đền bù tại quầy Thư viện và được Thủ thư xác nhận.
+                    </div>
+                </div>
+            `;
+
+            const confirmRes = await Swal.fire({
+                title: 'Xác Nhận Báo Mất Sách?',
+                html: modalHtml,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-check me-1"></i> Xác Nhận Báo Mất',
+                cancelButtonText: 'Đóng'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                const res = await fetch('/api/reader/bao-mat-sach', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maPhieu=${maPhieu}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Đã Báo Mất Sách!',
+                        html: `Đã chốt tổng tiền đền bù: <strong class="text-danger fs-5">${tongDenBu.toLocaleString('vi-VN')} VNĐ</strong>.<br><br>` +
+                            `Tài khoản độc giả của bạn hiện đang bị tạm khóa. Vui lòng liên hệ quầy Thư viện để nộp tiền bồi thường và mở lại tài khoản!`,
+                        confirmButtonColor: '#4338ca',
+                        confirmButtonText: 'Đã Hiểu'
+                    }).then(() => {
+                        loadMyLoans();
+                    });
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể báo mất sách!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function handleLogout() {
+            Swal.fire({
+                title: 'Đăng Xuất?',
+                text: 'Bạn có chắc chắn muốn đăng xuất?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4338ca',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    localStorage.clear();
+                    window.location.href = '/login';
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+
+</html>

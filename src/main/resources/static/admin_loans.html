@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Mượn / Trả Sách & Xuất Báo Cáo - Cổng Thủ Thư</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary-indigo: #4338ca;
+            --primary-emerald: #059669;
+            --primary-rose: #e11d48;
+        }
+
+        body {
+            background: url('/images/wave-bg.png');
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+        }
+
+        .sidebar {
+            min-height: 100vh;
+            background: #0f172a;
+            color: #e2e8f0;
+            width: 260px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-link-admin {
+            color: #94a3b8;
+            padding: 12px 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            border-radius: 10px;
+            margin: 4px 12px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-link-admin:hover,
+        .nav-link-admin.active {
+            color: #ffffff;
+            background: #4338ca;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        @keyframes pulseRed {
+            0% {
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 8px rgba(225, 29, 72, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0);
+            }
+        }
+
+        .pulse-badge {
+            animation: pulseRed 1.8s infinite;
+        }
+
+        /* Print styling */
+        @media print {
+
+            .sidebar,
+            .btn,
+            .glass-card.p-3,
+            .no-print {
+                display: none !important;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                padding: 0 !important;
+            }
+
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+
+            .glass-card {
+                box-shadow: none !important;
+                border: 1px solid #000 !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar d-flex flex-column no-print">
+        <div class="sidebar-brand text-white">
+            <i class="fa-solid fa-book-journal-whills text-warning me-2"></i> THỦ THƯ QUẢN TRỊ
+        </div>
+        <div class="py-3 flex-grow-1">
+            <a href="/admin/dashboard" class="nav-link-admin">
+                <i class="fa-solid fa-chart-pie me-3"></i> Tổng Quan
+            </a>
+            <a href="/admin/books" class="nav-link-admin">
+                <i class="fa-solid fa-book me-3"></i> Quản Lý Sách
+            </a>
+            <a href="/admin/loans" class="nav-link-admin active">
+                <i class="fa-solid fa-receipt me-3"></i> Quản Lý Mượn/Trả
+            </a>
+            <a href="/admin/loan-history" class="nav-link-admin">
+                <i class="fa-solid fa-clock-rotate-left me-3"></i> Lịch Sử Mượn Sách
+            </a>
+            <a href="/admin/readers" class="nav-link-admin">
+                <i class="fa-solid fa-users me-3"></i> Quản Lý Độc Giả
+            </a>
+            <a href="/admin/feedback" class="nav-link-admin d-flex align-items-center">
+                <i class="fa-solid fa-bell me-3"></i> Phản Hồi & Báo Cáo
+                <span class="badge bg-danger rounded-pill ms-auto feedback-badge-unread" style="display:none;">0</span>
+            </a>
+            <div class="px-4 py-2 text-uppercase text-white-50" style="font-size: 0.75rem;">Hệ Thống</div>
+            <a href="/reader/dashboard" target="_blank" class="nav-link-admin">
+                <i class="fa-solid fa-arrow-up-right-from-square me-3"></i> Xem Cổng Độc Giả
+            </a>
+        </div>
+        <div class="p-3 border-top border-secondary">
+            <button class="btn btn-outline-danger w-100 rounded-pill btn-sm" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> Đăng Xuất
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Topbar -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold mb-1 text-dark">Quản Lý Toàn Bộ Phiếu Mượn / Trả Sách</h3>
+
+            </div>
+            <div class="d-flex gap-2 no-print">
+                <a href="/admin/loan-history" class="btn btn-outline-success rounded-pill px-3 shadow-sm fw-semibold">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Xem Lịch Sử Mượn Sách
+                </a>
+                <button class="btn btn-outline-secondary rounded-pill px-3 shadow-sm" onclick="exportToCsv()">
+                    <i class="fa-solid fa-file-csv me-1 text-success"></i> Xuất Báo Cáo CSV
+                </button>
+                <button class="btn btn-outline-primary rounded-pill px-3 shadow-sm" onclick="window.print()">
+                    <i class="fa-solid fa-print me-1"></i> In Danh Sách
+                </button>
+                <button class="btn btn-primary rounded-pill px-3 shadow-sm" onclick="loadLoans()">
+                    <i class="fa-solid fa-rotate me-1"></i> Làm Mới
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="glass-card p-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2 no-print">
+            <div class="btn-group flex-wrap" role="group">
+                <button type="button" class="btn btn-sm btn-primary active" id="fActive" onclick="setFilter('active')">
+                    <i class="fa-solid fa-spinner me-1"></i> Đang hoạt động (<span id="cActive">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning" id="fHold" onclick="setFilter('hold')">
+                    <i class="fa-solid fa-clock me-1"></i> Chờ lấy sách (<span id="cHold">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="fBorrowing"
+                    onclick="setFilter('borrowing')">
+                    Đang mượn (<span id="cBorrowing">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="fOverdue"
+                    onclick="setFilter('overdue')">
+                    Quá hạn (<span id="cOverdue">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="fLost" onclick="setFilter('lost')">
+                    <i class="fa-solid fa-book-skull me-1"></i> Báo mất / Cần thu tiền (<span id="cLost">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="fAll" onclick="setFilter('all')">
+                    Tất cả (<span id="cAll">0</span>)
+                </button>
+                <a href="/admin/loan-history" class="btn btn-sm btn-outline-success">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch sử đã trả (<span id="cReturned">0</span>)
+                    &rarr;
+                </a>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="input-group input-group-sm" style="min-width: 290px;">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i
+                            class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" class="form-control border-start-0 ps-0" id="loanSearchInput"
+                        placeholder="Tìm nhanh: Mã phiếu, Mã ĐG, Mã sách..." oninput="handleSearchLoans(this.value)">
+                    <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()"
+                        title="Xóa tìm kiếm"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <button class="btn btn-sm btn-outline-danger rounded-pill shadow-sm fw-semibold"
+                    onclick="handleCleanupExpiredHolds()">
+                    <i class="fa-solid fa-broom me-1"></i> Quét & Hủy (24h)
+                </button>
+            </div>
+        </div>
+
+        <!-- Loans Table Card -->
+        <div class="glass-card overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="loansReportTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã Phiếu</th>
+                            <th>Độc Giả</th>
+                            <th>Sách Mượn</th>
+                            <th>Ngày Mượn</th>
+                            <th>Hạn Trả</th>
+                            <th>Ngày Trả TT</th>
+                            <th>Tình Trạng</th>
+                            <th class="text-end pe-4 no-print">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="loansTableBody">
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">Đang tải danh sách phiếu mượn...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let allLoans = [];
+        let currentFilter = 'active';
+        let searchQuery = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = localStorage.getItem('auth_user');
+            if (!userStr) {
+                window.location.href = '/login';
+                return;
+            }
+            const user = JSON.parse(userStr);
+            if (user.vaiTro !== 'LIBRARIAN') {
+                window.location.href = '/reader/dashboard';
+                return;
+            }
+
+            loadLoans();
+            loadUnreadFeedbackBadge();
+        });
+
+        function handleSearchLoans(val) {
+            searchQuery = (val || '').trim().toLowerCase();
+            renderTable();
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('loanSearchInput');
+            if (input) input.value = '';
+            searchQuery = '';
+            renderTable();
+        }
+
+        async function loadUnreadFeedbackBadge() {
+            try {
+                const res = await fetch('/api/admin/phan-hoi/dem-chua-xu-ly');
+                const r = await res.json();
+                if (r.success && r.data && r.data.chuaXuLy > 0) {
+                    document.querySelectorAll('.feedback-badge-unread').forEach(el => {
+                        el.textContent = r.data.chuaXuLy;
+                        el.style.display = 'inline-block';
+                    });
+                }
+            } catch (e) { }
+        }
+
+        async function loadLoans() {
+            try {
+                const res = await fetch('/api/phieu-muon');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    allLoans = result.data;
+                    updateCounts();
+                    renderTable();
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể tải phiếu mượn!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function updateCounts() {
+            const hold = allLoans.filter(l => l.trangThaiPhieu === 0).length;
+            const borrowing = allLoans.filter(l => l.trangThaiPhieu === 1).length;
+            const overdue = allLoans.filter(l => l.trangThaiPhieu === 1 && (l.isQuaHan || l.soNgayQuaHan > 0)).length;
+            const lost = allLoans.filter(l => l.trangThaiPhieu === 4).length;
+            const returned = allLoans.filter(l => l.trangThaiPhieu === 2 || l.trangThaiPhieu === 3 || l.trangThaiPhieu === 5).length;
+            const active = hold + borrowing + lost;
+
+            if (document.getElementById('cActive')) document.getElementById('cActive').textContent = active;
+            document.getElementById('cAll').textContent = allLoans.length;
+            document.getElementById('cHold').textContent = hold;
+            document.getElementById('cBorrowing').textContent = borrowing;
+            document.getElementById('cOverdue').textContent = overdue;
+            document.getElementById('cLost').textContent = lost;
+            document.getElementById('cReturned').textContent = returned;
+        }
+
+        function setFilter(f) {
+            currentFilter = f;
+            if (document.getElementById('fActive')) document.getElementById('fActive').className = `btn btn-sm ${f === 'active' ? 'btn-primary active' : 'btn-outline-primary'}`;
+            document.getElementById('fAll').className = `btn btn-sm ${f === 'all' ? 'btn-secondary active' : 'btn-outline-secondary'}`;
+            document.getElementById('fHold').className = `btn btn-sm ${f === 'hold' ? 'btn-warning active' : 'btn-outline-warning'}`;
+            document.getElementById('fBorrowing').className = `btn btn-sm ${f === 'borrowing' ? 'btn-primary active' : 'btn-outline-primary'}`;
+            document.getElementById('fOverdue').className = `btn btn-sm ${f === 'overdue' ? 'btn-danger active' : 'btn-outline-danger'}`;
+            document.getElementById('fLost').className = `btn btn-sm ${f === 'lost' ? 'btn-danger active' : 'btn-outline-danger'}`;
+            renderTable();
+        }
+
+        function formatDateTimeStacked(dateStr, colorClass = '') {
+            if (!dateStr || dateStr === '-' || dateStr === 'Chưa trả') return '-';
+            try {
+                const parts = String(dateStr).trim().split(/[ T]/);
+                if (parts.length >= 2) {
+                    const dateParts = parts[0].split('-');
+                    const formattedDate = (dateParts.length === 3) ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : parts[0];
+                    const timePart = parts[1].split('.')[0];
+                    const mainClass = colorClass || 'fw-semibold text-dark';
+                    const subClass = colorClass ? `${colorClass} opacity-75` : 'text-muted';
+                    return `<div class="${mainClass}" style="line-height: 1.25;">${formattedDate}</div><div class="${subClass}" style="font-size: 0.75rem; line-height: 1.25;">${timePart}</div>`;
+                }
+                if (parts.length === 1 && parts[0].includes('-')) {
+                    const dateParts = parts[0].split('-');
+                    const formattedDate = (dateParts.length === 3) ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : parts[0];
+                    return `<div class="${colorClass || 'fw-semibold text-dark'}">${formattedDate}</div>`;
+                }
+                return dateStr;
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        function renderTable() {
+            let list = allLoans;
+            if (currentFilter === 'active') list = list.filter(l => l.trangThaiPhieu === 0 || l.trangThaiPhieu === 1 || l.trangThaiPhieu === 4);
+            else if (currentFilter === 'hold') list = list.filter(l => l.trangThaiPhieu === 0);
+            else if (currentFilter === 'borrowing') list = list.filter(l => l.trangThaiPhieu === 1);
+            else if (currentFilter === 'overdue') list = list.filter(l => l.trangThaiPhieu === 1 && (l.isQuaHan || l.soNgayQuaHan > 0));
+            else if (currentFilter === 'lost') list = list.filter(l => l.trangThaiPhieu === 4);
+            else if (currentFilter === 'returned') list = list.filter(l => l.trangThaiPhieu === 2 || l.trangThaiPhieu === 3 || l.trangThaiPhieu === 5);
+
+            if (searchQuery) {
+                list = list.filter(l => {
+                    const mp = String(l.maPhieu || '').toLowerCase();
+                    const mdg = String(l.maDocGia || '').toLowerCase();
+                    const ms = String(l.maSach || '').toLowerCase();
+                    const tdg = (l.tenDocGia || '').toLowerCase();
+                    const ts = (l.tenSach || '').toLowerCase();
+                    return mp.includes(searchQuery) || mdg.includes(searchQuery) || ms.includes(searchQuery) || tdg.includes(searchQuery) || ts.includes(searchQuery);
+                });
+            }
+
+            const tbody = document.getElementById('loansTableBody');
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted">Không tìm thấy phiếu mượn nào phù hợp.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            list.forEach(p => {
+                const isHold = p.trangThaiPhieu === 0;
+                const isBorrowing = p.trangThaiPhieu === 1;
+                const isReturned = p.trangThaiPhieu === 2;
+                const isCanceled = p.trangThaiPhieu === 3;
+                const isLost = p.trangThaiPhieu === 4;
+                const isSettled = p.trangThaiPhieu === 5;
+                const isOverdue = isBorrowing && (p.isQuaHan || p.soNgayQuaHan > 0);
+
+                let statusBadge = '';
+                let action = '';
+
+                if (isHold) {
+                    const isExpired = p.isQuaHanGiu;
+                    statusBadge = `
+                        <span class="badge ${isExpired ? 'bg-danger pulse-badge text-white' : 'bg-warning text-dark'} status-badge shadow-sm">
+                            <i class="fa-solid fa-clock me-1"></i> Chờ lấy sách
+                        </span>
+                    `;
+                    action = `
+                        <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm fw-bold" onclick="handleConfirmDelivery(${p.maPhieu}, '${escapeHtml(p.tenSach)}', '${escapeHtml(p.tenDocGia)}')">
+                            <i class="fa-solid fa-hand-holding-hand me-1"></i> Xác Nhận Giao Sách
+                        </button>
+                    `;
+                } else if (isLost) {
+                    statusBadge = `
+                        <span class="badge bg-danger status-badge pulse-badge text-white shadow-sm">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Báo mất / Cần đền bù
+                        </span>
+                    `;
+                    action = `
+                        <button class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm pulse-badge" onclick="handleConfirmCompensation(${p.maPhieu})">
+                            <i class="fa-solid fa-hand-holding-dollar me-1"></i> Xác Nhận Thu Tiền Đền Bù
+                        </button>
+                    `;
+                } else if (isBorrowing) {
+                    const soNgayQ = p.soNgayQuaHan || 0;
+                    const tienP = p.tienPhat || 0;
+                    if (isOverdue) {
+                        const isOver10 = soNgayQ > 10;
+                        statusBadge = `
+                            <span class="badge bg-danger status-badge pulse-badge text-white shadow-sm">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Quá hạn ${soNgayQ} ngày
+                            </span>
+                            ${isOver10 ? `
+                                <div class="badge bg-danger text-white border border-danger p-1 mt-1 small d-block shadow-sm">
+                                    <i class="fa-solid fa-lock me-1"></i> Tài khoản bị khóa
+                                </div>
+                            ` : ''}
+                        `;
+                    } else {
+                        statusBadge = `
+                            <span class="badge status-badge bg-primary text-white shadow-sm">
+                                <i class="fa-solid fa-book-open-reader me-1"></i> Đang mượn
+                            </span>
+                        `;
+                    }
+                    action = `
+                        <button class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm" onclick="handleReturnSettlement(${p.maPhieu}, '${escapeHtml(p.tenSach)}', '${escapeHtml(p.tenDocGia)}', ${p.soNgayMuon || 1}, ${p.soNgayQuaHan || 0}, ${p.tienPhat || 0}, ${p.giaTienSach || 50000}, ${p.maDocGia || 0})">
+                            <i class="fa-solid fa-receipt me-1"></i> Xác Nhận Nhận Sách
+                        </button>
+                    `;
+                } else if (isCanceled) {
+                    statusBadge = `
+                        <span class="badge status-badge bg-secondary text-white shadow-sm">
+                            <i class="fa-solid fa-ban me-1"></i> Đã hủy
+                        </span>
+                    `;
+                    action = `<span class="text-muted small"><i class="fa-solid fa-xmark text-danger me-1"></i> Đã hủy</span>`;
+                } else {
+                    statusBadge = `
+                        <span class="badge status-badge bg-success text-white shadow-sm">
+                            <i class="fa-solid fa-check-double me-1"></i> ${isSettled ? 'Đã đền bù' : 'Đã trả sách'}
+                        </span>
+                    `;
+                    action = `<span class="text-muted small"><i class="fa-solid fa-check text-success me-1"></i> Hoàn tất</span>`;
+                }
+
+                html += `
+                    <tr class="${isLost ? 'table-danger bg-opacity-25' : (isHold ? 'table-warning bg-opacity-10' : '')}">
+                        <td class="ps-4 fw-bold text-secondary">#${p.maPhieu}</td>
+                        <td>
+                            <strong class="text-dark">${escapeHtml(p.tenDocGia)}</strong>
+                            <div class="text-muted small">Mã ĐG: #${p.maDocGia}</div>
+                        </td>
+                        <td>
+                            <strong class="text-primary">${escapeHtml(p.tenSach)}</strong>
+                            <div class="text-muted small">Mã sách: #${p.maSach}</div>
+                        </td>
+                        <td>${formatDateTimeStacked(p.ngayMuon)}</td>
+                        <td>${p.ngayHenTra ? formatDateTimeStacked(p.ngayHenTra, isOverdue ? 'text-danger fw-bold' : '') : '-'}</td>
+                        <td>${p.ngayTraThucTe ? formatDateTimeStacked(p.ngayTraThucTe, 'text-success fw-semibold') : (isCanceled ? '<span class="text-danger small">Đã hủy</span>' : '<span class="text-muted small">Chưa trả</span>')}</td>
+                        <td>${statusBadge}</td>
+                        <td class="text-end pe-4 no-print">${action}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        async function handleReturnSettlement(maPhieu, tenSach, tenDocGia, soNgayMuon, soNgayQuaHan, tienPhat, giaTienSach, maDocGia) {
+            const phatQuaHan = Number(tienPhat) > 0 ? Number(tienPhat) : 0;
+            const giaSach = Number(giaTienSach) > 0 ? Number(giaTienSach) : 50000;
+            const ngayMuon = Number(soNgayMuon) > 0 ? Number(soNgayMuon) : 1;
+            const ngayQuaHan = Number(soNgayQuaHan) > 0 ? Number(soNgayQuaHan) : 0;
+            const readerId = Number(maDocGia) > 0 ? Number(maDocGia) : 0;
+
+            const modalHtml = `
+                <div class="text-start">
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-primary">Phiếu mượn #${maPhieu}</span>
+                            <span class="text-muted small">Thời gian mượn: <strong>${ngayMuon} ngày</strong></span>
+                        </div>
+                        <div class="fw-bold text-dark fs-6 mb-1">${escapeHtml(tenSach)}</div>
+                        <div class="text-muted small">
+                            Độc giả: <strong class="text-primary">${escapeHtml(tenDocGia)}</strong> • 
+                            Giá niêm yết: <strong>${giaSach.toLocaleString('vi-VN')} VNĐ</strong>
+                        </div>
+                    </div>
+
+                    <!-- Lựa chọn Tình trạng sách khi trả -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark mb-2">
+                            <i class="fa-solid fa-clipboard-check text-primary me-1"></i> Tình trạng sách kiểm tra tại quầy:
+                        </label>
+                        <div class="d-flex flex-column gap-2">
+                            <label class="p-2 border rounded-3 d-flex align-items-center gap-2 bg-white" style="cursor: pointer;">
+                                <input type="radio" name="swalBookCondition" value="normal" checked class="form-check-input mt-0">
+                                <div class="ms-1">
+                                    <strong class="text-success"><i class="fa-solid fa-circle-check me-1"></i> Nguyên vẹn</strong>
+                                </div>
+                            </label>
+                            <label class="p-2 border rounded-3 d-flex align-items-center gap-2 bg-white" style="cursor: pointer;">
+                                <input type="radio" name="swalBookCondition" value="damaged" class="form-check-input mt-0">
+                                <div class="ms-1">
+                                    <strong class="text-warning text-dark"><i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> Hỏng hóc / Hư hại</strong>
+                                </div>
+                            </label>
+                            <label class="p-2 border rounded-3 d-flex align-items-center gap-2 bg-white" style="cursor: pointer;">
+                                <input type="radio" name="swalBookCondition" value="lost" class="form-check-input mt-0">
+                                <div class="ms-1">
+                                    <strong class="text-danger"><i class="fa-solid fa-book-skull me-1"></i> Báo mất sách</strong>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Ô phụ thu hỏng hóc (ẩn mặc định) -->
+                    <div id="swalDamageBox" class="mb-3 p-3 bg-warning bg-opacity-10 border border-warning rounded-3" style="display: none;">
+                        <label class="form-label fw-bold small text-dark mb-1">
+                            <i class="fa-solid fa-wrench text-warning me-1"></i> Phí phụ thu sửa chữa / hư hại (VNĐ):
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control" id="swalDamageInput" min="0" step="5000" value="20000">
+                            <span class="input-group-text">VNĐ</span>
+                        </div>
+
+                    </div>
+
+                    <!-- Bảng kê quyết toán tại quầy -->
+                    <div class="card border p-3 bg-light rounded-3 shadow-sm mb-2" id="swalSettlementCard">
+                        <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-calculator text-primary me-2"></i>Chi Tiết Quyết Toán Thu Tiền Tại Quầy:</h6>
+                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                            <span>Số ngày đã mượn:</span>
+                            <span class="fw-bold text-dark">${ngayMuon} ngày</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                            <span>Số ngày quá hạn:</span>
+                            <span class="fw-bold ${ngayQuaHan > 0 ? 'text-danger' : 'text-success'}">${ngayQuaHan} ngày</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                            <span>Tiền phạt quá hạn (5.000đ/ngày):</span>
+                            <span class="fw-bold text-danger">${phatQuaHan.toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom small" id="swalDamageRow" style="display: none;">
+                            <span>Phụ thu hỏng hóc:</span>
+                            <span class="fw-bold text-warning text-dark" id="swalDamageVal">0 VNĐ</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom small" id="swalLostRow" style="display: none;">
+                            <span>Giá niêm yết cuốn sách:</span>
+                            <span class="fw-bold text-danger">${giaSach.toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
+                        <div class="d-flex justify-content-between pt-2 fw-bold fs-6">
+                            <span id="swalTotalLabel">TỔNG TIỀN QUYẾT TOÁN:</span>
+                            <span class="text-danger" id="swalTotalVal">${phatQuaHan.toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
+                    </div>
+
+
+                </div>
+            `;
+
+            let selectedCondition = 'normal';
+            let damageFee = 0;
+
+            const confirmRes = await Swal.fire({
+                title: 'Xác Nhận Nhận Sách',
+                html: modalHtml,
+                icon: 'question',
+                width: '600px',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-check-double me-1"></i> Hoàn Tất Trả Sách',
+                cancelButtonText: 'Đóng',
+                didOpen: () => {
+                    const radios = document.querySelectorAll('input[name="swalBookCondition"]');
+                    const damageBox = document.getElementById('swalDamageBox');
+                    const damageInput = document.getElementById('swalDamageInput');
+                    const damageRow = document.getElementById('swalDamageRow');
+                    const damageVal = document.getElementById('swalDamageVal');
+                    const lostRow = document.getElementById('swalLostRow');
+                    const totalLabel = document.getElementById('swalTotalLabel');
+                    const totalVal = document.getElementById('swalTotalVal');
+                    const confirmBtn = Swal.getConfirmButton();
+
+                    function updateDisplay() {
+                        const cond = document.querySelector('input[name="swalBookCondition"]:checked').value;
+                        selectedCondition = cond;
+
+                        if (cond === 'normal') {
+                            damageBox.style.display = 'none';
+                            damageRow.style.display = 'none';
+                            lostRow.style.display = 'none';
+                            totalLabel.textContent = 'TỔNG TIỀN QUYẾT TOÁN:';
+                            totalVal.textContent = phatQuaHan.toLocaleString('vi-VN') + ' VNĐ';
+                            confirmBtn.innerHTML = '<i class="fa-solid fa-check-double me-1"></i> Hoàn Tất Trả Sách';
+                            confirmBtn.style.backgroundColor = '#059669';
+                            damageFee = 0;
+                        } else if (cond === 'damaged') {
+                            damageBox.style.display = 'block';
+                            damageRow.style.display = 'flex';
+                            lostRow.style.display = 'none';
+                            damageFee = Math.max(0, parseInt(damageInput.value) || 0);
+                            damageVal.textContent = damageFee.toLocaleString('vi-VN') + ' VNĐ';
+                            totalLabel.textContent = 'TỔNG TIỀN QUYẾT TOÁN:';
+                            totalVal.textContent = (phatQuaHan + damageFee).toLocaleString('vi-VN') + ' VNĐ';
+                            confirmBtn.innerHTML = '<i class="fa-solid fa-check-double me-1"></i> Hoàn Tất Trả Sách (Kèm Phụ Thu)';
+                            confirmBtn.style.backgroundColor = '#d97706';
+                        } else if (cond === 'lost') {
+                            damageBox.style.display = 'none';
+                            damageRow.style.display = 'none';
+                            lostRow.style.display = 'flex';
+                            totalLabel.textContent = 'TỔNG TIỀN PHẢI ĐỀN BÙ:';
+                            totalVal.textContent = (phatQuaHan + giaSach).toLocaleString('vi-VN') + ' VNĐ';
+                            confirmBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> Xác Nhận Báo Mất Sách';
+                            confirmBtn.style.backgroundColor = '#dc2626';
+                            damageFee = 0;
+                        }
+                    }
+
+                    radios.forEach(r => r.addEventListener('change', updateDisplay));
+                    damageInput.addEventListener('input', () => {
+                        damageFee = Math.max(0, parseInt(damageInput.value) || 0);
+                        damageVal.textContent = damageFee.toLocaleString('vi-VN') + ' VNĐ';
+                        totalVal.textContent = (phatQuaHan + damageFee).toLocaleString('vi-VN') + ' VNĐ';
+                    });
+                }
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                if (selectedCondition === 'lost') {
+                    const res = await fetch('/api/reader/bao-mat-sach', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `maPhieu=${maPhieu}`
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Đã Chuyển Sang Báo Mất Sách!',
+                            html: `Đã chốt tổng tiền đền bù: <strong class="text-danger fs-5">${(phatQuaHan + giaSach).toLocaleString('vi-VN')} VNĐ</strong>.<br>` +
+                                `Tài khoản độc giả <strong>${escapeHtml(tenDocGia)}</strong> đã bị tạm khóa cho đến khi hoàn tất nộp tiền đền bù tại quầy.`,
+                            confirmButtonColor: '#4338ca'
+                        }).then(() => loadLoans());
+                    } else {
+                        Swal.fire('Lỗi', result.message || 'Không thể chuyển báo mất sách!', 'error');
+                    }
+                } else {
+                    let conditionText = 'Nguyên vẹn';
+                    if (selectedCondition === 'damaged') {
+                        conditionText = 'Hỏng hóc / Hư hại';
+                    }
+                    const res = await fetch('/api/admin/xac-nhan-tra-sach', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `maPhieu=${maPhieu}&tienPhuThu=${damageFee}&tinhTrangSach=${encodeURIComponent(conditionText)}`
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        const tongThu = phatQuaHan + damageFee;
+                        const isOver10Days = (ngayQuaHan > 10 && readerId > 0);
+
+                        if (isOver10Days) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Hoàn Tất Trả Sách & Quyết Toán!',
+                                html: `Đã hoàn tất nhận lại sách cho độc giả <strong>${escapeHtml(tenDocGia)}</strong>.<br>` +
+                                    (tongThu > 0 ? `Tổng tiền đã quyết toán thu phạt: <strong class="text-success fs-5">${tongThu.toLocaleString('vi-VN')} VNĐ</strong>.<br><br>` : `<br>`) +
+                                    `<div class="alert alert-warning p-3 small text-start border-0 rounded-3 mb-3">` +
+                                    `<i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> <strong>Lưu ý quan trọng:</strong><br>` +
+                                    `Độc giả này từng bị hệ thống tự động khóa tài khoản do quá hạn &gt; 10 ngày. Bạn có muốn <strong>MỞ KHÓA TÀI KHOẢN</strong> cho độc giả ngay bây giờ không?` +
+                                    `</div>`,
+                                showCancelButton: true,
+                                confirmButtonColor: '#059669',
+                                cancelButtonColor: '#64748b',
+                                confirmButtonText: '<i class="fa-solid fa-lock-open me-1"></i> Mở Khóa Tài Khoản Ngay',
+                                cancelButtonText: 'Để Sau'
+                            }).then(async (unl) => {
+                                if (unl.isConfirmed) {
+                                    await handleQuickUnlock(readerId, tenDocGia);
+                                }
+                                loadLoans();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Hoàn Tất Trả Sách Thành Công!',
+                                html: `Đã hoàn tất trả sách cho độc giả <strong>${escapeHtml(tenDocGia)}</strong>.<br>` +
+                                    (tongThu > 0 ? `Tổng tiền đã quyết toán thu: <strong class="text-success fs-5">${tongThu.toLocaleString('vi-VN')} VNĐ</strong>.<br><br>` : `<br>`) +
+                                    `<div class="p-3 bg-success bg-opacity-10 border border-success border-opacity-25 rounded text-success text-start small">` +
+                                    `<i class="fa-solid fa-circle-check me-1"></i> <strong>Cơ sở dữ liệu đã cập nhật thành công (Transaction):</strong><br>` +
+                                    `• Trạng thái phiếu: <strong>Đã trả sách</strong>.<br>` +
+                                    `• Ngày trả thực tế: <strong>Hôm nay</strong>.<br>` +
+                                    `• Sách <strong>"${escapeHtml(tenSach)}"</strong>: Phục hồi về <strong>Sẵn sàng mượn</strong>.` +
+                                    `</div>`,
+                                confirmButtonColor: '#059669',
+                                confirmButtonText: 'Đã Hiểu'
+                            }).then(() => loadLoans());
+                        }
+                    } else {
+                        Swal.fire('Lỗi', result.message || 'Không thể xác nhận trả sách!', 'error');
+                    }
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        async function handleQuickUnlock(maDocGia, hoTen) {
+            try {
+                const res = await fetch('/api/admin/doc-gia/mo-khoa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maDocGia=${maDocGia}`
+                });
+                const r = await res.json();
+                if (r.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã Mở Khóa Tài Khoản!',
+                        text: `Tài khoản của độc giả ${hoTen} (#${maDocGia}) đã được mở khóa thành công!`,
+                        timer: 1800,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire('Chưa thể mở khóa', r.message, 'warning');
+                }
+            } catch (e) {
+                Swal.fire('Lỗi', e.message, 'error');
+            }
+        }
+
+        async function handleReturn(maPhieu, tenSach, tenDocGia, soNgayQuaHan, tienPhat) {
+            handleReturnSettlement(maPhieu, tenSach, tenDocGia, 1, soNgayQuaHan, tienPhat, 50000);
+        }
+
+        async function handleConfirmDelivery(maPhieu, tenSach, tenDocGia) {
+            const confirmHtml = `
+                <div class="text-start">
+                    <p class="mb-2">Xác nhận giao sách cho độc giả đến quầy:</p>
+                    <div class="card bg-light border-0 p-3 mb-3">
+                        <div>Cuốn sách: <strong class="text-dark">${escapeHtml(tenSach)}</strong> (Phiếu #${maPhieu})</div>
+                        <div class="mt-1">Độc giả nhận: <strong class="text-primary">${escapeHtml(tenDocGia)}</strong></div>
+                    </div>
+                </div>
+            `;
+
+            const confirmRes = await Swal.fire({
+                title: 'Xác Nhận Giao Sách Tại Quầy',
+                html: confirmHtml,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-hand-holding-box me-1"></i> Xác Nhận Giao Sách',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                const res = await fetch('/api/admin/xac-nhan-giao-sach', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maPhieu=${maPhieu}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã Giao Sách Thành Công!',
+                        html: `Sách <strong>${escapeHtml(tenSach)}</strong> đã được giao cho độc giả <strong>${escapeHtml(tenDocGia)}</strong>.`
+                    }).then(() => {
+                        loadLoans();
+                    });
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể xác nhận giao sách!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        async function handleConfirmCompensation(maPhieu) {
+            const p = allLoans.find(l => l.maPhieu === maPhieu);
+            if (!p) {
+                Swal.fire('Lỗi', 'Không tìm thấy thông tin phiếu mượn!', 'error');
+                return;
+            }
+
+            const tongDenBu = p.tienDenBu > 0 ? p.tienDenBu : ((p.tienPhat || 0) + (p.giaTienSach || 50000));
+            const tienPhat = p.tienPhat || 0;
+            const giaSach = p.giaTienSach || 50000;
+
+            const modalHtml = `
+                <div class="text-start">
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-danger">Phiếu mượn #${p.maPhieu}</span>
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Báo mất sách</span>
+                        </div>
+                        <div class="fw-bold text-dark fs-6 mb-1">${escapeHtml(p.tenSach)}</div>
+                        <div class="text-muted small">
+                            Độc giả: <strong class="text-primary">${escapeHtml(p.tenDocGia)}</strong> (Mã ĐG: #${p.maDocGia})
+                        </div>
+                    </div>
+
+                    <div class="card border p-3 bg-danger bg-opacity-10 rounded-3 mb-3">
+                        <h6 class="fw-bold text-danger mb-2"><i class="fa-solid fa-calculator me-1"></i> Chi Tiết Khoản Thu Đền Bù Tại Quầy:</h6>
+                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                            <span>Giá niêm yết cuốn sách:</span>
+                            <strong class="text-dark">${Number(giaSach).toLocaleString('vi-VN')} VNĐ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                            <span>Tiền phạt quá hạn (nếu có):</span>
+                            <strong class="text-danger">${Number(tienPhat).toLocaleString('vi-VN')} VNĐ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between pt-2 fw-bold fs-6">
+                            <span class="text-danger">TỔNG TIỀN PHẢI THU:</span>
+                            <span class="text-danger fs-5">${Number(tongDenBu).toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small mb-0 border-0 rounded-3 py-2">
+                        <i class="fa-solid fa-circle-info me-1"></i> Khi bấm <strong>"Xác Nhận Đã Thu Đủ"</strong>, hệ thống sẽ:
+                        <ul class="mb-0 ps-3 mt-1">
+                            <li>Cập nhật trạng thái phiếu sang Đã đền bù.</li>
+                            <li>Tự động Mở khóa tài khoản cho độc giả.</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+
+            const confirmRes = await Swal.fire({
+                title: 'Xác Nhận Thu Tiền Đền Bù',
+                html: modalHtml,
+                icon: 'warning',
+                width: '560px',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-hand-holding-dollar me-1"></i> Xác Nhận Đã Thu Đủ',
+                cancelButtonText: 'Đóng'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                Swal.fire({
+                    title: 'Đang xử lý...',
+                    text: 'Vui lòng chờ trong giây lát',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const res = await fetch('/api/admin/xac-nhan-den-bu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maPhieu=${maPhieu}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã Thu Tiền Đền Bù Thành Công!',
+                        html: `Đã thu số tiền <strong class="text-success fs-5">${Number(tongDenBu).toLocaleString('vi-VN')} VNĐ</strong> từ độc giả <strong>${escapeHtml(p.tenDocGia)}</strong>.<br>` +
+                            `<div class="p-2 bg-success bg-opacity-10 border border-success border-opacity-25 rounded text-success text-start small mt-2">` +
+                            `<i class="fa-solid fa-circle-check me-1"></i> Phiếu #${p.maPhieu} đã hoàn tất đền bù. Tài khoản độc giả đã được mở khóa tự động.` +
+                            `</div>`,
+                        confirmButtonColor: '#059669',
+                        confirmButtonText: 'Đã Hiểu'
+                    }).then(() => loadLoans());
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể xác nhận đền bù!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        async function handleCleanupExpiredHolds() {
+            const confirmRes = await Swal.fire({
+                title: 'Quét & Hủy Phiếu Giữ Sách Quá Hạn',
+                text: 'Hệ thống sẽ quét tất cả các phiếu giữ sách đã quá thời hạn 24 giờ mà độc giả không đến lấy, tự động hủy phiếu và phục hồi trạng thái Sẵn sàng mượn cho các cuốn sách đó.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-broom me-1"></i> Bắt Đầu Quét & Hủy',
+                cancelButtonText: 'Đóng'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                Swal.fire({
+                    title: 'Đang xử lý...',
+                    text: 'Vui lòng chờ trong giây lát',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const res = await fetch('/api/admin/huy-phieu-qua-han', {
+                    method: 'POST'
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Hoàn Tất Dọn Dẹp!',
+                        html: `${result.message || 'Đã quét và hủy các phiếu giữ sách quá hạn.'}`
+                    }).then(() => {
+                        loadLoans();
+                    });
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể dọn dẹp phiếu quá hạn!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function exportToCsv() {
+            if (allLoans.length === 0) {
+                Swal.fire('Thông báo', 'Không có dữ liệu phiếu mượn để xuất!', 'info');
+                return;
+            }
+
+            let csvContent = '\uFEFF'; // UTF-8 BOM for Excel
+            csvContent += 'Mã Phiếu,Mã Độc Giả,Tên Độc Giả,Mã Sách,Tên Sách,Ngày Mượn,Hạn Trả,Ngày Trả Thực Tế,Trạng Thái,Số Ngày Quá Hạn,Tiền Phạt (VNĐ)\r\n';
+
+            allLoans.forEach(p => {
+                let st = 'Chờ lấy sách';
+                if (p.trangThaiPhieu === 1) st = 'Đang mượn';
+                else if (p.trangThaiPhieu === 2) st = 'Đã trả';
+                else if (p.trangThaiPhieu === 3) st = 'Đã hủy (Quá hạn)';
+                else if (p.trangThaiPhieu === 4) st = 'Báo mất';
+                else if (p.trangThaiPhieu === 5) st = 'Đã đền bù';
+
+                const row = [
+                    p.maPhieu,
+                    p.maDocGia,
+                    `"${(p.tenDocGia || '').replace(/"/g, '""')}"`,
+                    p.maSach,
+                    `"${(p.tenSach || '').replace(/"/g, '""')}"`,
+                    `"${p.ngayMuon || ''}"`,
+                    `"${p.ngayHenTra || ''}"`,
+                    `"${p.ngayTraThucTe || ''}"`,
+                    `"${st}"`,
+                    p.soNgayQuaHan || 0,
+                    p.tienPhat || 0
+                ];
+                csvContent += row.join(',') + '\r\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const nowStr = new Date().toISOString().slice(0, 10);
+            a.download = `BaoCao_MuonTra_ThuVien_${nowStr}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Xuất Báo Cáo Thành Công!',
+                text: 'Tập tin CSV đã được lưu vào máy tính của bạn.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        function handleLogout() {
+            Swal.fire({
+                title: 'Đăng Xuất?',
+                text: 'Bạn có chắc chắn muốn đăng xuất?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4338ca',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    localStorage.clear();
+                    window.location.href = '/login';
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+
+</html>

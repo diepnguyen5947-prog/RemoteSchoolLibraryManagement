@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phản Hồi & Báo Cáo - Cổng Thủ Thư</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary-indigo: #4338ca;
+            --primary-emerald: #059669;
+            --primary-rose: #e11d48;
+        }
+
+        body {
+            background: url('/images/wave-bg.png');
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+        }
+
+        .sidebar {
+            min-height: 100vh;
+            background: #0f172a;
+            color: #e2e8f0;
+            width: 260px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-link-admin {
+            color: #94a3b8;
+            padding: 12px 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            border-radius: 10px;
+            margin: 4px 12px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-link-admin:hover,
+        .nav-link-admin.active {
+            color: #ffffff;
+            background: #4338ca;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .filter-btn.active {
+            background-color: #4338ca !important;
+            color: white !important;
+            border-color: #4338ca !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar d-flex flex-column">
+        <div class="sidebar-brand text-white">
+            <i class="fa-solid fa-book-journal-whills text-warning me-2"></i> THỦ THƯ QUẢN TRỊ
+        </div>
+        <div class="py-3 flex-grow-1">
+            <a href="/admin/dashboard" class="nav-link-admin">
+                <i class="fa-solid fa-chart-pie me-3"></i> Tổng Quan
+            </a>
+            <a href="/admin/books" class="nav-link-admin">
+                <i class="fa-solid fa-book me-3"></i> Quản Lý Sách
+            </a>
+            <a href="/admin/loans" class="nav-link-admin">
+                <i class="fa-solid fa-receipt me-3"></i> Quản Lý Mượn/Trả
+            </a>
+            <a href="/admin/loan-history" class="nav-link-admin">
+                <i class="fa-solid fa-clock-rotate-left me-3"></i> Lịch Sử Mượn Sách
+            </a>
+            <a href="/admin/readers" class="nav-link-admin">
+                <i class="fa-solid fa-users me-3"></i> Quản Lý Độc Giả
+            </a>
+            <a href="/admin/feedback" class="nav-link-admin active d-flex align-items-center">
+                <i class="fa-solid fa-bell me-3"></i> Phản Hồi & Báo Cáo
+                <span class="badge bg-danger rounded-pill ms-auto feedback-badge-unread" style="display:none;">0</span>
+            </a>
+            <div class="px-4 py-2 text-uppercase text-white-50" style="font-size: 0.75rem;">Hệ Thống</div>
+            <a href="/reader/dashboard" target="_blank" class="nav-link-admin">
+                <i class="fa-solid fa-arrow-up-right-from-square me-3"></i> Xem Cổng Độc Giả
+            </a>
+        </div>
+        <div class="p-3 border-top border-secondary">
+            <button class="btn btn-outline-danger w-100 rounded-pill btn-sm" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> Đăng Xuất
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Topbar -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold mb-1 text-dark">Hộp Thư Phản Hồi & Báo Cáo Sách</h3>
+
+            </div>
+            <div>
+                <button class="btn btn-outline-secondary rounded-pill px-4" onclick="loadFeedback()">
+                    <i class="fa-solid fa-rotate me-1"></i> Làm Mới Dữ Liệu
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Card -->
+        <div class="glass-card p-3 mb-4">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-7">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i
+                                class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" id="searchInput" class="form-control border-0 bg-light"
+                            placeholder="Tìm kiếm theo tên độc giả, email, tên sách hoặc nội dung..."
+                            oninput="filterFeedback()">
+                    </div>
+                </div>
+                <div class="col-md-5 d-flex justify-content-md-end gap-2">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary filter-btn active btn-sm" id="btnFilterAll"
+                            onclick="applyFilter('all')">Tất Cả</button>
+                        <button type="button" class="btn btn-outline-danger filter-btn btn-sm" id="btnFilterUnread"
+                            onclick="applyFilter('unread')">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i> Chờ Xử Lý (<span
+                                id="unreadCount">0</span>)
+                        </button>
+                        <button type="button" class="btn btn-outline-success filter-btn btn-sm" id="btnFilterRead"
+                            onclick="applyFilter('read')">
+                            <i class="fa-solid fa-check me-1"></i> Đã Xử Lý
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="glass-card overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4" style="width: 80px;">Mã</th>
+                            <th style="width: 180px;">Độc Giả</th>
+                            <th style="width: 250px;">Cuốn Sách</th>
+                            <th>Nội Dung Phản Hồi</th>
+                            <th style="width: 170px;">Thời Gian Gửi</th>
+                            <th style="width: 130px;">Trạng Thái</th>
+                            <th class="text-end pe-4" style="width: 180px;">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feedbackTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">Đang tải danh sách phản hồi...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let allFeedback = [];
+        let currentFilter = 'all';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = localStorage.getItem('auth_user');
+            if (!userStr) {
+                window.location.href = '/login';
+                return;
+            }
+            const user = JSON.parse(userStr);
+            if (user.vaiTro !== 'LIBRARIAN') {
+                window.location.href = '/reader/dashboard';
+                return;
+            }
+
+            loadFeedback();
+        });
+
+        async function loadFeedback() {
+            try {
+                const res = await fetch('/api/admin/phan-hoi');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    allFeedback = result.data;
+                    updateUnreadCounters();
+                    renderFeedback();
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể tải phản hồi!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function updateUnreadCounters() {
+            const unread = allFeedback.filter(f => f.trangThai === 0).length;
+            const unreadCountEl = document.getElementById('unreadCount');
+            if (unreadCountEl) unreadCountEl.textContent = unread;
+
+            document.querySelectorAll('.feedback-badge-unread').forEach(badge => {
+                if (unread > 0) {
+                    badge.textContent = unread;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+        }
+
+        function renderFeedback() {
+            const tbody = document.getElementById('feedbackTableBody');
+            let filtered = allFeedback;
+
+            if (currentFilter === 'unread') {
+                filtered = filtered.filter(f => f.trangThai === 0);
+            } else if (currentFilter === 'read') {
+                filtered = filtered.filter(f => f.trangThai === 1);
+            }
+
+            const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (kw) {
+                filtered = filtered.filter(f =>
+                    (f.tenDocGia && f.tenDocGia.toLowerCase().includes(kw)) ||
+                    (f.emailDocGia && f.emailDocGia.toLowerCase().includes(kw)) ||
+                    (f.tenSach && f.tenSach.toLowerCase().includes(kw)) ||
+                    (f.noiDung && f.noiDung.toLowerCase().includes(kw))
+                );
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted">Không tìm thấy phản hồi nào phù hợp.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(f => {
+                const isUnread = f.trangThai === 0;
+                const statusBadge = isUnread
+                    ? `<span class="badge status-badge bg-danger text-white"><i class="fa-solid fa-circle-exclamation me-1"></i> Chờ xử lý</span>`
+                    : `<span class="badge status-badge bg-success text-white"><i class="fa-solid fa-circle-check me-1"></i> Đã xử lý</span>`;
+
+                const actionBtn = isUnread
+                    ? `<div class="d-flex justify-content-end gap-1">
+                         <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="viewFeedbackDetail(${f.maPhanHoi})" title="Xem đầy đủ chi tiết">
+                           <i class="fa-solid fa-eye me-1"></i> Chi Tiết
+                         </button>
+                         <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="handleResolveFeedback(${f.maPhanHoi}, '${escapeHtml(f.tenSach)}')">
+                           <i class="fa-solid fa-check me-1"></i> Xử Lý
+                         </button>
+                       </div>`
+                    : `<button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="viewFeedbackDetail(${f.maPhanHoi})">
+                         <i class="fa-solid fa-eye me-1"></i> Chi Tiết
+                       </button>`;
+
+                html += `
+                    <tr class="${isUnread ? 'table-warning bg-opacity-25' : ''}">
+                        <td class="ps-4 fw-bold text-secondary">#${f.maPhanHoi}</td>
+                        <td>
+                            <span class="fw-semibold text-dark">${escapeHtml(f.tenDocGia)}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-primary">${escapeHtml(f.tenSach)}</div>
+                            <div class="text-muted small">Mã sách: #${f.maSach}</div>
+                        </td>
+                        <td>
+                            <div class="text-secondary small" style="max-width: 380px; white-space: normal; line-height: 1.5;">${escapeHtml(f.noiDung)}</div>
+                        </td>
+                        <td class="text-muted small">${f.ngayGui}</td>
+                        <td>${statusBadge}</td>
+                        <td class="text-end pe-4">${actionBtn}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function applyFilter(filter) {
+            currentFilter = filter;
+            document.getElementById('btnFilterAll').classList.toggle('active', filter === 'all');
+            document.getElementById('btnFilterUnread').classList.toggle('active', filter === 'unread');
+            document.getElementById('btnFilterRead').classList.toggle('active', filter === 'read');
+            renderFeedback();
+        }
+
+        function filterFeedback() {
+            renderFeedback();
+        }
+
+        async function handleResolveFeedback(maPhanHoi, tenSach) {
+            const { value: note, isConfirmed } = await Swal.fire({
+                title: 'Xử Lý Phản Hồi #' + maPhanHoi,
+                html: `Sách liên quan: <strong>${escapeHtml(tenSach)}</strong><br><small class="text-muted">Nhập ghi chú xử lý (ví dụ: "Đã kiểm tra và dán lại bìa", "Đã thay ấn bản mới"):</small>`,
+                input: 'textarea',
+                inputValue: 'Đã tiếp nhận và khắc phục tình trạng sách.',
+                showCancelButton: true,
+                confirmButtonColor: '#4338ca',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-check me-1"></i> Xác Nhận Đã Xử Lý',
+                cancelButtonText: 'Đóng'
+            });
+
+            if (!isConfirmed) return;
+
+            try {
+                const res = await fetch('/api/admin/phan-hoi/xu-ly', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maPhanHoi=${maPhanHoi}&ghiChu=${encodeURIComponent(note || 'Đã xử lý')}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã Xử Lý Thành Công!',
+                        text: result.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    loadFeedback();
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể cập nhật!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function viewFeedbackDetail(maPhanHoi) {
+            const f = allFeedback.find(item => item.maPhanHoi === maPhanHoi);
+            if (!f) return;
+
+            const isUnread = f.trangThai === 0;
+            const statusHtml = isUnread
+                ? `<span class="badge bg-danger"><i class="fa-solid fa-circle-exclamation me-1"></i> Chờ xử lý</span>`
+                : `<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> Đã xử lý</span>`;
+
+            Swal.fire({
+                title: `<div class="fs-5 fw-bold text-dark mb-1">Chi Tiết Phản Hồi #${f.maPhanHoi}</div>`,
+                html: `
+                    <div class="text-start small">
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div><strong>Trạng thái:</strong> ${statusHtml}</div>
+                            <div class="text-muted"><i class="fa-regular fa-clock me-1"></i> ${f.ngayGui}</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="fw-bold text-muted text-uppercase" style="font-size: 0.75rem;">Thông Tin Độc Giả</label>
+                            <div class="p-2 bg-light rounded border">
+                                <div class="fw-bold text-dark fs-6">${escapeHtml(f.tenDocGia)}</div>
+                                <div class="text-secondary"><i class="fa-solid fa-envelope me-1 text-primary"></i> ${escapeHtml(f.emailDocGia || 'Không có email')}</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="fw-bold text-muted text-uppercase" style="font-size: 0.75rem;">Sách Báo Cáo</label>
+                            <div class="p-2 bg-light rounded border">
+                                <div class="fw-bold text-primary">${escapeHtml(f.tenSach)}</div>
+                                <div class="text-muted small">Mã số sách: #${f.maSach}</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="fw-bold text-muted text-uppercase" style="font-size: 0.75rem;">Tiêu Đề & Vấn Đề</label>
+                            <div class="fw-semibold text-dark mb-2">${escapeHtml(f.tieuDe || 'Báo cáo tình trạng sách')}</div>
+                            <label class="fw-bold text-muted text-uppercase" style="font-size: 0.75rem;">Nội Dung Phản Hồi Từ Độc Giả</label>
+                            <div class="p-2 bg-light rounded border text-dark" style="white-space: pre-wrap;">${escapeHtml(f.noiDung)}</div>
+                        </div>
+
+                        <div>
+                            <label class="fw-bold text-muted text-uppercase" style="font-size: 0.75rem;">Ghi Chú Xử Lý Của Thủ Thư</label>
+                            ${f.ghiChuThuThu
+                        ? `<div class="p-2 bg-success bg-opacity-10 border border-success border-opacity-25 rounded text-success fw-semibold"><i class="fa-solid fa-reply me-1"></i> ${escapeHtml(f.ghiChuThuThu)}</div>`
+                        : `<div class="p-2 bg-light rounded border text-muted fst-italic">Chưa có phản hồi / ghi chú xử lý từ thủ thư.</div>`}
+                        </div>
+                    </div>
+                `,
+                confirmButtonColor: '#4338ca',
+                confirmButtonText: 'Đóng',
+                customClass: {
+                    popup: 'rounded-4'
+                }
+            });
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_token');
+            window.location.href = '/login';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+
+</html>

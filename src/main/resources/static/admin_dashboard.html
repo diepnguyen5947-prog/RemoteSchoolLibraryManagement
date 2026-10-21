@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tổng Quan Quản Trị - Cổng Thủ Thư</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary-indigo: #4338ca;
+            --primary-emerald: #059669;
+            --primary-rose: #e11d48;
+        }
+
+        body {
+            background: url('/images/wave-bg.png');
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+        }
+
+        .sidebar {
+            min-height: 100vh;
+            background: #0f172a;
+            color: #e2e8f0;
+            width: 260px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-link-admin {
+            color: #94a3b8;
+            padding: 12px 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            border-radius: 10px;
+            margin: 4px 12px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-link-admin:hover,
+        .nav-link-admin.active {
+            color: #ffffff;
+            background: #4338ca;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        @keyframes pulseRed {
+            0% {
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 8px rgba(225, 29, 72, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0);
+            }
+        }
+
+        .pulse-badge {
+            animation: pulseRed 1.8s infinite;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar d-flex flex-column">
+        <div class="sidebar-brand text-white">
+            <i class="fa-solid fa-book-journal-whills text-warning me-2"></i> THỦ THƯ QUẢN TRỊ
+        </div>
+        <div class="py-3 flex-grow-1">
+            <a href="/admin/dashboard" class="nav-link-admin active">
+                <i class="fa-solid fa-chart-pie me-3"></i> Tổng Quan
+            </a>
+            <a href="/admin/books" class="nav-link-admin">
+                <i class="fa-solid fa-book me-3"></i> Quản Lý Sách
+            </a>
+            <a href="/admin/loans" class="nav-link-admin">
+                <i class="fa-solid fa-receipt me-3"></i> Quản Lý Mượn/Trả
+            </a>
+            <a href="/admin/loan-history" class="nav-link-admin">
+                <i class="fa-solid fa-clock-rotate-left me-3"></i> Lịch Sử Mượn Sách
+            </a>
+            <a href="/admin/readers" class="nav-link-admin">
+                <i class="fa-solid fa-users me-3"></i> Quản Lý Độc Giả
+            </a>
+            <a href="/admin/feedback" class="nav-link-admin d-flex align-items-center">
+                <i class="fa-solid fa-bell me-3"></i> Phản Hồi & Báo Cáo
+                <span class="badge bg-danger rounded-pill ms-auto feedback-badge-unread" style="display:none;">0</span>
+            </a>
+            <div class="px-4 py-2 text-uppercase text-white-50" style="font-size: 0.75rem;">Hệ Thống</div>
+            <a href="/reader/dashboard" target="_blank" class="nav-link-admin">
+                <i class="fa-solid fa-arrow-up-right-from-square me-3"></i> Xem Cổng Độc Giả
+            </a>
+        </div>
+        <div class="p-3 border-top border-secondary">
+            <button class="btn btn-outline-danger w-100 rounded-pill btn-sm" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> Đăng Xuất
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Topbar -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold mb-1 text-dark">Bảng Điều Khiển Tổng Quan</h3>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="text-end me-2">
+                    <div class="fw-bold text-dark" id="adminName">Thủ Thư</div>
+                    <small class="text-muted" id="adminEmail">admin@school.edu.vn</small>
+                </div>
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary"
+                    style="width: 44px; height: 44px; font-size: 1.2rem;">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4 Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-sm-6 col-xl-3">
+                <div class="glass-card p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Tổng Số Sách</span>
+                            <h3 class="fw-bold mt-2 mb-0 text-dark" id="statTongSach">--</h3>
+                        </div>
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="fa-solid fa-book"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="glass-card p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Sách Đang Mượn</span>
+                            <h3 class="fw-bold mt-2 mb-0 text-danger" id="statDangMuon">--</h3>
+                        </div>
+                        <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                            <i class="fa-solid fa-hand-holding-hand"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="glass-card p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Sách Sẵn Sàng</span>
+                            <h3 class="fw-bold mt-2 mb-0 text-success" id="statSanSang">--</h3>
+                        </div>
+                        <div class="stat-icon bg-success bg-opacity-10 text-success">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="glass-card p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Tổng Số Độc Giả</span>
+                            <h3 class="fw-bold mt-2 mb-0 text-warning" id="statDocGia">--</h3>
+                        </div>
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Recent Loans -->
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="glass-card p-0 h-100 overflow-hidden">
+                    <div class="p-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-dark">
+                            <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Hoạt Động Mượn Sách Gần Đây
+                        </h5>
+                        <a href="/admin/loans" class="btn btn-sm btn-outline-primary rounded-pill">Xem Tất Cả</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Mã Phiếu</th>
+                                    <th>Độc Giả</th>
+                                    <th>Sách Mượn</th>
+                                    <th>Ngày Mượn</th>
+                                    <th>Trạng Thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentLoansBody">
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">Đang tải dữ liệu gần đây...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="glass-card p-4 h-100">
+                    <h5 class="fw-bold mb-3 text-dark">
+                        <i class="fa-solid fa-wand-magic-sparkles me-2 text-warning"></i>Thao Tác Nhanh
+                    </h5>
+                    <div class="d-flex flex-column gap-3">
+                        <a href="/admin/books"
+                            class="btn btn-outline-primary py-3 rounded-3 text-start fw-semibold shadow-sm">
+                            <i class="fa-solid fa-plus-circle me-2 text-primary"></i> Thêm Sách Mới & Bìa Sách
+                        </a>
+                        <a href="/admin/loans"
+                            class="btn btn-outline-success py-3 rounded-3 text-start fw-semibold shadow-sm">
+                            <i class="fa-solid fa-arrow-rotate-left me-2 text-success"></i> Kiểm Tra Quá Hạn & Thu Hồi
+                            Sách
+                        </a>
+                        <a href="/admin/loans" onclick="sessionStorage.setItem('openCsv', 'true')"
+                            class="btn btn-outline-secondary py-3 rounded-3 text-start fw-semibold shadow-sm">
+                            <i class="fa-solid fa-file-csv me-2 text-secondary"></i> Xuất Báo Cáo Thống Kê CSV
+                        </a>
+                        <a href="/admin/readers"
+                            class="btn btn-outline-warning py-3 rounded-3 text-start fw-semibold shadow-sm">
+                            <i class="fa-solid fa-user-plus me-2 text-warning"></i> Cấp Tài Khoản Độc Giả Mới
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = localStorage.getItem('auth_user');
+            if (!userStr) {
+                window.location.href = '/login';
+                return;
+            }
+            const user = JSON.parse(userStr);
+            if (user.vaiTro !== 'LIBRARIAN') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Truy Cập Bị Từ Chối',
+                    text: 'Bạn không có quyền truy cập cổng Quản trị Thủ thư!',
+                    confirmButtonColor: '#4338ca'
+                }).then(() => {
+                    window.location.href = '/reader/dashboard';
+                });
+                return;
+            }
+
+            document.getElementById('adminName').textContent = user.hoTen;
+            document.getElementById('adminEmail').textContent = user.email;
+
+            loadStats();
+            loadRecentLoans();
+            loadUnreadFeedbackBadge();
+        });
+
+        async function loadUnreadFeedbackBadge() {
+            try {
+                const res = await fetch('/api/admin/phan-hoi/dem-chua-xu-ly');
+                const r = await res.json();
+                if (r.success && r.data && r.data.chuaXuLy > 0) {
+                    document.querySelectorAll('.feedback-badge-unread').forEach(el => {
+                        el.textContent = r.data.chuaXuLy;
+                        el.style.display = 'inline-block';
+                    });
+                }
+            } catch (e) { }
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/admin/thong-ke');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    const d = result.data;
+                    document.getElementById('statTongSach').textContent = d.tongSoSach;
+                    document.getElementById('statDangMuon').textContent = d.soSachDangMuon;
+                    document.getElementById('statSanSang').textContent = d.soSachSanSang;
+                    document.getElementById('statDocGia').textContent = d.tongSoDocGia;
+                }
+            } catch (err) {
+                console.error('Lỗi tải thống kê:', err);
+            }
+        }
+
+        function formatDateTimeStacked(dateStr, colorClass = '') {
+            if (!dateStr || dateStr === '-' || dateStr === 'Chưa trả') return '-';
+            try {
+                const parts = String(dateStr).trim().split(/[ T]/);
+                if (parts.length >= 2) {
+                    const dateParts = parts[0].split('-');
+                    const formattedDate = (dateParts.length === 3) ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : parts[0];
+                    const timePart = parts[1].split('.')[0];
+                    const mainClass = colorClass || 'fw-semibold text-dark';
+                    const subClass = colorClass ? `${colorClass} opacity-75` : 'text-muted';
+                    return `<div class="${mainClass}" style="line-height: 1.25;">${formattedDate}</div><div class="${subClass}" style="font-size: 0.75rem; line-height: 1.25;">${timePart}</div>`;
+                }
+                if (parts.length === 1 && parts[0].includes('-')) {
+                    const dateParts = parts[0].split('-');
+                    const formattedDate = (dateParts.length === 3) ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : parts[0];
+                    return `<div class="${colorClass || 'fw-semibold text-dark'}">${formattedDate}</div>`;
+                }
+                return dateStr;
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        async function loadRecentLoans() {
+            try {
+                const res = await fetch('/api/phieu-muon');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    const loans = result.data.slice(0, 6); // Lấy 6 phiếu mới nhất
+                    let html = '';
+                    loans.forEach(l => {
+                        const isHold = l.trangThaiPhieu === 0;
+                        const isBorrowing = l.trangThaiPhieu === 1;
+                        const isReturned = l.trangThaiPhieu === 2;
+                        const isCanceled = l.trangThaiPhieu === 3;
+                        const isLost = l.trangThaiPhieu === 4;
+                        const isSettled = l.trangThaiPhieu === 5;
+                        const isOverdue = isBorrowing && (l.isQuaHan || l.soNgayQuaHan > 0);
+
+                        let badge = '';
+                        if (isHold) {
+                            const isExpired = l.isQuaHanGiu;
+                            badge = `
+                                <span class="badge ${isExpired ? 'bg-danger pulse-badge text-white' : 'bg-warning text-dark'} status-badge shadow-sm">
+                                    <i class="fa-solid fa-clock me-1"></i> Chờ lấy sách
+                                </span>
+                            `;
+                        } else if (isLost) {
+                            badge = `
+                                <span class="badge bg-danger status-badge pulse-badge text-white shadow-sm">
+                                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Báo mất / Cần đền bù
+                                </span>
+                            `;
+                        } else if (isBorrowing) {
+                            const soNgayQ = l.soNgayQuaHan || 0;
+                            if (isOverdue) {
+                                badge = `
+                                    <span class="badge bg-danger status-badge pulse-badge text-white shadow-sm">
+                                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Quá hạn ${soNgayQ} ngày
+                                    </span>
+                                `;
+                            } else {
+                                badge = `
+                                    <span class="badge status-badge bg-primary text-white shadow-sm">
+                                        <i class="fa-solid fa-book-open-reader me-1"></i> Đang mượn
+                                    </span>
+                                `;
+                            }
+                        } else if (isCanceled) {
+                            badge = `
+                                <span class="badge status-badge bg-secondary text-white shadow-sm">
+                                    <i class="fa-solid fa-ban me-1"></i> Đã hủy
+                                </span>
+                            `;
+                        } else {
+                            badge = `
+                                <span class="badge status-badge bg-success text-white shadow-sm">
+                                    <i class="fa-solid fa-check-double me-1"></i> ${isSettled ? 'Đã đền bù' : 'Đã trả sách'}
+                                </span>
+                            `;
+                        }
+
+                        html += `
+                            <tr>
+                                <td class="ps-3 fw-bold text-secondary">#${l.maPhieu}</td>
+                                <td>
+                                    <strong class="text-dark">${escapeHtml(l.tenDocGia)}</strong>
+                                    <div class="text-muted small">Mã ĐG: #${l.maDocGia}</div>
+                                </td>
+                                <td>
+                                    <strong class="text-primary">${escapeHtml(l.tenSach)}</strong>
+                                    <div class="text-muted small">Mã sách: #${l.maSach}</div>
+                                </td>
+                                <td>${formatDateTimeStacked(l.ngayMuon)}</td>
+                                <td>${badge}</td>
+                            </tr>
+                        `;
+                    });
+                    document.getElementById('recentLoansBody').innerHTML = html || '<tr><td colspan="5" class="text-center py-4 text-muted">Chưa có giao dịch mượn</td></tr>';
+                }
+            } catch (err) {
+                console.error('Lỗi tải phiếu gần đây:', err);
+            }
+        }
+
+        function handleLogout() {
+            Swal.fire({
+                title: 'Đăng Xuất?',
+                text: 'Bạn có chắc chắn muốn đăng xuất khỏi cổng Quản trị?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4338ca',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    localStorage.clear();
+                    window.location.href = '/login';
+                }
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+
+</html>

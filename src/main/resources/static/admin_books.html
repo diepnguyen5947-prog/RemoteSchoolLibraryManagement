@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Sách & Ảnh Bìa - Cổng Thủ Thư</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary-indigo: #4338ca;
+            --primary-emerald: #059669;
+            --primary-rose: #e11d48;
+        }
+
+        body {
+            background: url('/images/wave-bg.png');
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+        }
+
+        .sidebar {
+            min-height: 100vh;
+            background: #0f172a;
+            color: #e2e8f0;
+            width: 260px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-link-admin {
+            color: #94a3b8;
+            padding: 12px 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            border-radius: 10px;
+            margin: 4px 12px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-link-admin:hover,
+        .nav-link-admin.active {
+            color: #ffffff;
+            background: #4338ca;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .cover-preview-box {
+            width: 140px;
+            height: 186px;
+            border-radius: 12px;
+            border: 2px dashed #cbd5e1;
+            object-fit: cover;
+            background: #f8fafc;
+            display: block;
+            margin: 0 auto 12px auto;
+            transition: all 0.3s ease;
+        }
+
+        .image-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+            gap: 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .image-item-card {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+            background: #ffffff;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .image-item-card.is-main {
+            border-color: #4338ca;
+            box-shadow: 0 0 0 2px rgba(67, 56, 202, 0.25);
+        }
+
+        .image-item-card img {
+            width: 100%;
+            height: 125px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-item-badge {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: #4338ca;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-weight: 700;
+            z-index: 2;
+        }
+
+        .image-item-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 6px;
+            background: rgba(255, 255, 255, 0.95);
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .image-item-btn {
+            padding: 2px 6px;
+            font-size: 0.72rem;
+            border-radius: 6px;
+            border: none;
+            background: #f1f5f9;
+            color: #475569;
+            transition: all 0.15s;
+        }
+
+        .image-item-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .image-item-btn.btn-del:hover {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar d-flex flex-column">
+        <div class="sidebar-brand text-white">
+            <i class="fa-solid fa-book-journal-whills text-warning me-2"></i> THỦ THƯ QUẢN TRỊ
+        </div>
+        <div class="py-3 flex-grow-1">
+            <a href="/admin/dashboard" class="nav-link-admin">
+                <i class="fa-solid fa-chart-pie me-3"></i> Tổng Quan
+            </a>
+            <a href="/admin/books" class="nav-link-admin active">
+                <i class="fa-solid fa-book me-3"></i> Quản Lý Sách
+            </a>
+            <a href="/admin/loans" class="nav-link-admin">
+                <i class="fa-solid fa-receipt me-3"></i> Quản Lý Mượn/Trả
+            </a>
+            <a href="/admin/loan-history" class="nav-link-admin">
+                <i class="fa-solid fa-clock-rotate-left me-3"></i> Lịch Sử Mượn Sách
+            </a>
+            <a href="/admin/readers" class="nav-link-admin">
+                <i class="fa-solid fa-users me-3"></i> Quản Lý Độc Giả
+            </a>
+            <a href="/admin/feedback" class="nav-link-admin d-flex align-items-center">
+                <i class="fa-solid fa-bell me-3"></i> Phản Hồi & Báo Cáo
+                <span class="badge bg-danger rounded-pill ms-auto feedback-badge-unread" style="display:none;">0</span>
+            </a>
+            <div class="px-4 py-2 text-uppercase text-white-50" style="font-size: 0.75rem;">Hệ Thống</div>
+            <a href="/reader/dashboard" target="_blank" class="nav-link-admin">
+                <i class="fa-solid fa-arrow-up-right-from-square me-3"></i> Xem Cổng Độc Giả
+            </a>
+        </div>
+        <div class="p-3 border-top border-secondary">
+            <button class="btn btn-outline-danger w-100 rounded-pill btn-sm" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> Đăng Xuất
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Topbar -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold mb-1 text-dark">Quản Lý Danh Mục Sách & Ảnh Bìa</h3>
+
+            </div>
+            <div>
+                <button class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm" onclick="openAddBookModal()">
+                    <i class="fa-solid fa-plus me-1"></i> Thêm Sách Mới
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="glass-card p-3 mb-4">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-9">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i
+                                class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" id="searchInput" class="form-control border-0 bg-light"
+                            placeholder="Tìm kiếm sách theo tên cuốn sách hoặc tác giả..." onkeyup="filterBooks()">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-secondary w-100 rounded-pill" onclick="loadBooks()">
+                        <i class="fa-solid fa-rotate me-1"></i> Làm Mới Dữ Liệu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Books Table Card -->
+        <div class="glass-card overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4" style="width: 70px;">Bìa</th>
+                            <th>Mã</th>
+                            <th>Tên Cuốn Sách</th>
+                            <th>Tác Giả</th>
+                            <th>Năm XB</th>
+                            <th>Giá Nhập</th>
+                            <th>Trạng Thái</th>
+                            <th class="text-end pe-4">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="booksTableBody">
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">Đang tải danh sách sách...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Thêm / Sửa Sách (Có Tải & Xem Trước Ảnh) -->
+    <div class="modal fade" id="bookModal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="bookModalTitle">
+                        <i class="fa-solid fa-book me-2"></i> Thêm Sách Mới
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="bookForm" onsubmit="submitBookForm(event)">
+                        <input type="hidden" id="modalBookId">
+
+                        <!-- Khung Quản Lý Bộ Sưu Tập Ảnh Cuốn Sách -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold small text-dark mb-0">
+                                    <i class="fa-solid fa-images text-primary me-1"></i> Bộ Sưu Tập Ảnh Cho Cuốn Sách:
+                                </label>
+                                <span class="badge bg-light text-primary border" id="imagesCountBadge">0 ảnh</span>
+                            </div>
+
+                            <!-- Thanh công cụ thêm ảnh -->
+                            <div class="p-3 bg-light rounded-3 border mb-2">
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    <label class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm mb-0">
+                                        <i class="fa-solid fa-cloud-arrow-up me-1"></i> Tải Ảnh Từ Máy Tính (Chọn được
+                                        nhiều ảnh)
+                                        <input type="file" id="coverFileInput" accept="image/*" multiple
+                                            style="display: none;" onchange="handleCoverFilesSelect(event)">
+                                    </label>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                                        onclick="addDefaultCover()">
+                                        <i class="fa-solid fa-rotate-left me-1"></i> Thêm Ảnh Mặc Định
+                                    </button>
+                                </div>
+
+                                <div>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white"><i
+                                                class="fa-solid fa-link text-muted"></i></span>
+                                        <input type="text" class="form-control" id="modalBookUrlInput"
+                                            placeholder="URL ảnh"
+                                            onkeydown="if(event.key==='Enter'){event.preventDefault(); addCoverUrl();}">
+                                        <button type="button" class="btn btn-outline-primary fw-semibold"
+                                            onclick="addCoverUrl()">
+                                            <i class="fa-solid fa-plus me-1"></i> Thêm URL
+                                        </button>
+                                    </div>
+                                    <div class="small text-muted mt-1" id="coverFileNameNotice">
+                                        <i class="fa-solid fa-circle-info me-1"></i> Bạn có thể tải nhiều ảnh từ máy
+                                        tính hoặc dán URL.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Danh sách ảnh đã chọn (Grid Gallery) -->
+                            <div id="bookImagesGallery" class="image-gallery-grid mb-1">
+                                <!-- Rendered dynamically by JS -->
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Tên Cuốn Sách:</label>
+                            <input type="text" class="form-control" id="modalBookTitleInput"
+                                placeholder="Ví dụ: Thiết Kế Hệ Thống Phân Tán" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Tác Giả:</label>
+                            <input type="text" class="form-control" id="modalBookAuthorInput"
+                                placeholder="Ví dụ: GS. Nguyễn Văn A" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold small text-muted">Năm Xuất Bản:</label>
+                                <input type="number" class="form-control" id="modalBookYearInput" value="2024"
+                                    min="1900" max="2100" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold small text-muted">Giá Nhập (VNĐ):</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="modalBookPriceInput" value="50000"
+                                        min="0" step="1000" required>
+                                    <span class="input-group-text small">đ</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thông báo & tùy chọn bổ sung sách mới nếu sách đang báo mất -->
+                        <div id="modalLostNotice" class="alert alert-warning py-2 px-3 small rounded-3 mb-3 d-none">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <i class="fa-solid fa-triangle-exclamation text-danger me-1"></i>
+                                    <span class="fw-bold text-dark">Sách đang bị báo mất / tạm ngưng phục vụ!</span>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input" type="checkbox" id="modalRestockCheck"
+                                        style="cursor: pointer;">
+                                    <label class="form-check-label fw-bold text-success small" for="modalRestockCheck"
+                                        style="cursor: pointer;">
+                                        Đã nhập bổ sung sách mới (Mở mượn lại)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary px-4 rounded-pill"
+                                data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" id="saveBookBtn"
+                                class="btn btn-primary px-4 rounded-pill fw-semibold">
+                                <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Sách
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let allBooks = [];
+        let bookModalInstance = null;
+        let selectedCoverBase64 = null;
+        let selectedCoverFileName = null;
+        const DEFAULT_COVER = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = localStorage.getItem('auth_user');
+            if (!userStr) {
+                window.location.href = '/login';
+                return;
+            }
+            const user = JSON.parse(userStr);
+            if (user.vaiTro !== 'LIBRARIAN') {
+                window.location.href = '/reader/dashboard';
+                return;
+            }
+
+            bookModalInstance = new bootstrap.Modal(document.getElementById('bookModal'));
+            loadBooks();
+            loadUnreadFeedbackBadge();
+        });
+
+        async function loadUnreadFeedbackBadge() {
+            try {
+                const res = await fetch('/api/admin/phan-hoi/dem-chua-xu-ly');
+                const r = await res.json();
+                if (r.success && r.data && r.data.chuaXuLy > 0) {
+                    document.querySelectorAll('.feedback-badge-unread').forEach(el => {
+                        el.textContent = r.data.chuaXuLy;
+                        el.style.display = 'inline-block';
+                    });
+                }
+            } catch (e) { }
+        }
+
+        async function loadBooks() {
+            try {
+                const res = await fetch('/api/sach');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    allBooks = result.data;
+                    renderBooks(allBooks);
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể tải sách!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function renderBooks(books) {
+            const tbody = document.getElementById('booksTableBody');
+            if (books.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted">Không tìm thấy sách nào phù hợp.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            books.forEach(b => {
+                const isAvailable = (b.trangThai === 0);
+                const isHold = (b.trangThai === 2);
+                const isLost = (b.trangThai === -1 || b.trangThai === -2);
+
+                let badge = '';
+                if (isAvailable) {
+                    badge = `<span class="badge status-badge bg-success text-white"><i class="fa-solid fa-circle-check me-1"></i>Sẵn sàng</span>`;
+                } else if (isHold) {
+                    badge = `<span class="badge status-badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>Chờ lấy</span>`;
+                } else if (isLost) {
+                    badge = `<span class="badge status-badge bg-danger text-white"><i class="fa-solid fa-triangle-exclamation me-1"></i>Báo mất / Tạm ngưng</span>`;
+                } else {
+                    badge = `<span class="badge status-badge bg-primary text-white"><i class="fa-solid fa-book-open me-1"></i>Đang mượn</span>`;
+                }
+
+                const cover = b.hinhAnh || DEFAULT_COVER;
+                const giaNhap = b.giaTien > 0 ? b.giaTien : 50000;
+
+                let actionBtns = '';
+                if (isLost) {
+                    actionBtns += `
+                        <button class="btn btn-sm btn-success rounded-pill me-1 fw-bold shadow-sm" onclick="handleRestockBook(${b.maSach})" title="Thủ thư xác nhận bổ sung sách mới thay thế">
+                            <i class="fa-solid fa-box-archive me-1"></i> Bổ sung sách mới
+                        </button>
+                    `;
+                }
+                actionBtns += `
+                    <button class="btn btn-sm btn-outline-primary rounded-pill me-1" onclick="openEditBookModal(${b.maSach})">
+                        <i class="fa-solid fa-pen-to-square me-1"></i> Sửa
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="handleDeleteBook(${b.maSach})">
+                        <i class="fa-solid fa-trash me-1"></i> Xóa
+                    </button>
+                `;
+
+                html += `
+                    <tr>
+                        <td class="ps-4">
+                            <img src="${cover}" style="width: 44px; height: 58px; object-fit: cover; border-radius: 6px;" class="shadow-sm">
+                        </td>
+                        <td class="fw-bold text-secondary">#${b.maSach}</td>
+                        <td class="fw-semibold text-dark">${escapeHtml(b.tenSach)}</td>
+                        <td>${escapeHtml(b.tacGia)}</td>
+                        <td>${b.namXuatBan}</td>
+                        <td class="fw-bold text-primary">${Number(giaNhap).toLocaleString('vi-VN')} đ</td>
+                        <td>${badge}</td>
+                        <td class="text-end pe-4">
+                            ${actionBtns}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function filterBooks() {
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (!keyword) {
+                renderBooks(allBooks);
+                return;
+            }
+            const filtered = allBooks.filter(b =>
+                (b.tenSach && b.tenSach.toLowerCase().includes(keyword)) ||
+                (b.tacGia && b.tacGia.toLowerCase().includes(keyword))
+            );
+            renderBooks(filtered);
+        }
+
+        let currentBookImages = [];
+
+        function renderImagesGallery() {
+            const gallery = document.getElementById('bookImagesGallery');
+            const badge = document.getElementById('imagesCountBadge');
+            badge.textContent = `${currentBookImages.length} ảnh`;
+
+            if (currentBookImages.length === 0) {
+                gallery.innerHTML = `
+                    <div class="text-center text-muted py-4 w-100" style="grid-column: 1 / -1;">
+                        <i class="fa-regular fa-image fa-2x mb-2 text-secondary opacity-50"></i>
+                        <p class="small mb-0">Chưa có ảnh nào. Vui lòng bấm <b>Tải Ảnh Từ Máy Tính</b> hoặc <b>Dán URL</b> để thêm ảnh.</p>
+                    </div>`;
+                return;
+            }
+
+            gallery.innerHTML = currentBookImages.map((imgUrl, index) => {
+                const isMain = (index === 0);
+                return `
+                    <div class="image-item-card ${isMain ? 'is-main' : ''}">
+                        ${isMain ? '<span class="image-item-badge"><i class="fa-solid fa-star me-1"></i> Bìa chính</span>' : ''}
+                        <img src="${escapeHtml(imgUrl)}" alt="Ảnh ${index + 1}" onerror="this.src='${DEFAULT_COVER}'">
+                        <div class="image-item-actions">
+                            ${!isMain ? `
+                                <button type="button" class="image-item-btn" title="Đặt làm ảnh bìa chính" onclick="setAsMainCover(${index})">
+                                    <i class="fa-solid fa-star text-warning"></i> Bìa
+                                </button>
+                            ` : '<span class="small text-primary fw-bold px-1" style="font-size:0.7rem;"><i class="fa-solid fa-check"></i> Chính</span>'}
+                            <button type="button" class="image-item-btn btn-del ms-auto" title="Xóa ảnh này" onclick="removeBookImage(${index})">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function setAsMainCover(index) {
+            if (index <= 0 || index >= currentBookImages.length) return;
+            const chosen = currentBookImages.splice(index, 1)[0];
+            currentBookImages.unshift(chosen);
+            renderImagesGallery();
+        }
+
+        function removeBookImage(index) {
+            if (index < 0 || index >= currentBookImages.length) return;
+            currentBookImages.splice(index, 1);
+            renderImagesGallery();
+        }
+
+        function addCoverUrl() {
+            const input = document.getElementById('modalBookUrlInput');
+            const url = (input.value || '').trim();
+            if (!url) {
+                Swal.fire('Nhắc nhở', 'Vui lòng nhập đường dẫn URL ảnh hợp lệ!', 'info');
+                return;
+            }
+            if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/uploads/')) {
+                Swal.fire('URL không hợp lệ', 'Đường dẫn ảnh phải bắt đầu bằng http:// hoặc https://', 'warning');
+                return;
+            }
+            currentBookImages.push(url);
+            input.value = '';
+            renderImagesGallery();
+        }
+
+        function addDefaultCover() {
+            currentBookImages.push(DEFAULT_COVER);
+            renderImagesGallery();
+        }
+
+        async function handleCoverFilesSelect(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            const notice = document.getElementById('coverFileNameNotice');
+            notice.innerHTML = `<span class="text-primary"><span class="spinner-border spinner-border-sm me-1"></span> Đang nén & tải lên ${files.length} ảnh...</span>`;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.startsWith('image/')) continue;
+
+                try {
+                    const base64Data = await readFileAndCompress(file);
+                    const uploadRes = await fetch('/api/admin/upload-cover', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            fileName: file.name,
+                            base64Data: base64Data
+                        })
+                    });
+                    const uploadResult = await uploadRes.json();
+                    if (uploadResult.success && uploadResult.data && uploadResult.data.url) {
+                        currentBookImages.push(uploadResult.data.url);
+                    }
+                } catch (err) {
+                    console.error('Lỗi khi tải ảnh:', err);
+                }
+            }
+
+            event.target.value = '';
+            notice.innerHTML = `<span class="text-success fw-semibold"><i class="fa-solid fa-circle-check me-1"></i> Đã tải lên và thêm ảnh thành công!</span>`;
+            renderImagesGallery();
+        }
+
+        function readFileAndCompress(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = new Image();
+                    img.onload = function () {
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 1000;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height = Math.round(height * (MAX_WIDTH / width));
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width = Math.round(width * (MAX_HEIGHT / height));
+                                height = MAX_HEIGHT;
+                            }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.85));
+                    };
+                    img.onerror = () => reject(new Error('Lỗi tải ảnh'));
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error('Lỗi đọc tệp'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function openAddBookModal() {
+            document.getElementById('modalBookId').value = '';
+            document.getElementById('bookModalTitle').innerHTML = '<i class="fa-solid fa-plus me-2"></i> Thêm Sách Mới';
+            document.getElementById('modalBookTitleInput').value = '';
+            document.getElementById('modalBookAuthorInput').value = '';
+            document.getElementById('modalBookYearInput').value = new Date().getFullYear();
+            document.getElementById('modalBookPriceInput').value = 50000;
+            document.getElementById('modalBookUrlInput').value = '';
+
+            document.getElementById('modalLostNotice').classList.add('d-none');
+            document.getElementById('modalRestockCheck').checked = false;
+
+            currentBookImages = [DEFAULT_COVER];
+            renderImagesGallery();
+
+            bookModalInstance.show();
+        }
+
+        function openEditBookModal(maSach) {
+            const b = allBooks.find(item => item.maSach === maSach);
+            if (!b) return;
+
+            document.getElementById('modalBookId').value = b.maSach;
+            document.getElementById('bookModalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square me-2"></i> Chỉnh Sửa Sách #${b.maSach}`;
+            document.getElementById('modalBookTitleInput').value = b.tenSach;
+            document.getElementById('modalBookAuthorInput').value = b.tacGia;
+            document.getElementById('modalBookYearInput').value = b.namXuatBan;
+            document.getElementById('modalBookPriceInput').value = b.giaTien || 50000;
+            document.getElementById('modalBookUrlInput').value = '';
+
+            const isLost = (b.trangThai === -1 || b.trangThai === -2);
+            const noticeEl = document.getElementById('modalLostNotice');
+            const checkEl = document.getElementById('modalRestockCheck');
+            if (isLost) {
+                noticeEl.classList.remove('d-none');
+                checkEl.checked = true; // Gợi ý kích hoạt lại khi sửa sách mất
+            } else {
+                noticeEl.classList.add('d-none');
+                checkEl.checked = false;
+            }
+
+            if (b.danhSachHinhAnh && Array.isArray(b.danhSachHinhAnh) && b.danhSachHinhAnh.length > 0) {
+                currentBookImages = [...b.danhSachHinhAnh];
+            } else if (b.rawHinhAnh) {
+                currentBookImages = b.rawHinhAnh.split('|||').map(s => s.trim()).filter(Boolean);
+            } else if (b.hinhAnh) {
+                currentBookImages = b.hinhAnh.split('|||').map(s => s.trim()).filter(Boolean);
+            } else {
+                currentBookImages = [DEFAULT_COVER];
+            }
+            renderImagesGallery();
+
+            bookModalInstance.show();
+        }
+
+        async function submitBookForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('modalBookId').value;
+            const tenSach = document.getElementById('modalBookTitleInput').value.trim();
+            const tacGia = document.getElementById('modalBookAuthorInput').value.trim();
+            const namXB = document.getElementById('modalBookYearInput').value;
+            const giaTien = document.getElementById('modalBookPriceInput').value || 50000;
+            const khoiPhuc = document.getElementById('modalRestockCheck').checked;
+            const saveBtn = document.getElementById('saveBookBtn');
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang lưu...';
+
+            try {
+                // Gom tất cả ảnh (tải từ máy + dán URL) thành chuỗi ngăn cách bởi |||
+                const finalCoverUrl = currentBookImages.length > 0 ? currentBookImages.join('|||') : DEFAULT_COVER;
+
+                const isEdit = !!id;
+                const endpoint = isEdit ? '/api/admin/sach/update' : '/api/admin/sach';
+                const bodyParams = isEdit
+                    ? `maSach=${id}&tenSach=${encodeURIComponent(tenSach)}&tacGia=${encodeURIComponent(tacGia)}&namXuatBan=${namXB}&giaTien=${encodeURIComponent(giaTien)}&hinhAnh=${encodeURIComponent(finalCoverUrl)}&khoiPhuc=${khoiPhuc}`
+                    : `tenSach=${encodeURIComponent(tenSach)}&tacGia=${encodeURIComponent(tacGia)}&namXuatBan=${namXB}&giaTien=${encodeURIComponent(giaTien)}&hinhAnh=${encodeURIComponent(finalCoverUrl)}`;
+
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: bodyParams
+                });
+
+                const result = await res.json();
+                bookModalInstance.hide();
+
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: isEdit ? 'Cập Nhật Thành Công!' : 'Thêm Sách Thành Công!',
+                        text: result.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        loadBooks();
+                    });
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Thao tác không thành công!', 'error');
+                }
+            } catch (err) {
+                bookModalInstance.hide();
+                Swal.fire('Lỗi', 'Lỗi xử lý: ' + err.message, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Lưu Sách';
+            }
+        }
+
+        async function handleRestockBook(maSach) {
+            const b = allBooks.find(item => item.maSach === maSach);
+            if (!b) return;
+
+            const currentPrice = b.giaTien > 0 ? b.giaTien : 50000;
+
+            const { value: formValues } = await Swal.fire({
+                title: 'Bổ Sung Sách Mới Vào Kho',
+                html: `
+                    <div class="text-start p-2">
+                        <div class="alert alert-info py-2 px-3 small mb-3">
+                            <i class="fa-solid fa-circle-info me-1"></i>
+                            Xác nhận Thư viện đã mua/nhập ấn bản sách mới thay thế cho cuốn bị mất:
+                            <br><strong class="text-dark fs-6 mt-1 d-inline-block">"${escapeHtml(b.tenSach)}" (#${b.maSach})</strong>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-secondary">Giá nhập ấn bản mới (VNĐ):</label>
+                            <input id="swal-restock-price" type="number" class="form-control form-control-lg fw-bold text-primary" value="${currentPrice}" min="1000" step="1000">
+                            <div class="form-text small text-muted">Giá mua/nhập mới để tính bồi thường nếu phát sinh thất lạc sau này.</div>
+                        </div>
+                        <div class="form-check form-switch p-3 bg-light rounded-3 border">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" id="swal-restock-confirm" checked style="cursor: pointer;">
+                            <label class="form-check-label fw-semibold small text-success" for="swal-restock-confirm" style="cursor: pointer;">
+                                Cập nhật trạng thái sách lên website cho Độc giả mượn
+                            </label>
+                        </div>
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-box-archive me-1"></i> Xác Nhận Bổ Sung Sách',
+                cancelButtonText: 'Đóng',
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                preConfirm: () => {
+                    const price = document.getElementById('swal-restock-price').value;
+                    const confirmActive = document.getElementById('swal-restock-confirm').checked;
+                    if (!price || Number(price) <= 0) {
+                        Swal.showValidationMessage('Vui lòng nhập giá sách hợp lệ!');
+                        return false;
+                    }
+                    if (!confirmActive) {
+                        Swal.showValidationMessage('Vui lòng tích chọn xác nhận mở mượn lại sách!');
+                        return false;
+                    }
+                    return { giaTien: Number(price) };
+                }
+            });
+
+            if (formValues) {
+                try {
+                    Swal.fire({
+                        title: 'Đang cập nhật kho sách...',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    const res = await fetch('/api/admin/sach/bo-sung', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `maSach=${maSach}&giaTien=${formValues.giaTien}`
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Bổ Sung Sách Thành Công!',
+                            text: result.message || 'Cuốn sách đã sẵn sàng cho độc giả mượn trên toàn hệ thống.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            loadBooks();
+                        });
+                    } else {
+                        Swal.fire('Lỗi', result.message || 'Không thể bổ sung sách!', 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+                }
+            }
+        }
+
+        async function handleDeleteBook(maSach) {
+            const b = allBooks.find(item => item.maSach === maSach);
+            if (!b) return;
+            const tenSach = b.tenSach;
+            const trangThai = b.trangThai;
+
+            if (trangThai === 1) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Không Thể Xóa',
+                    text: `Cuốn sách "${tenSach}" (#${maSach}) hiện đang được độc giả mượn! Vui lòng đợi hoàn trả trước khi xóa.`,
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+
+            const confirmRes = await Swal.fire({
+                title: 'Xác Nhận Xóa Sách?',
+                html: `Bạn có chắc chắn muốn xóa cuốn sách <strong>"${tenSach}" (#${maSach})</strong> khỏi thư viện?<br><small class="text-danger">Thao tác này sẽ xóa vĩnh viễn trong CSDL SQL Server.</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                const res = await fetch('/api/admin/sach/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maSach=${maSach}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã Xóa Thành Công!',
+                        text: result.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        loadBooks();
+                    });
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể xóa cuốn sách này!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        function handleLogout() {
+            Swal.fire({
+                title: 'Đăng Xuất?',
+                text: 'Bạn có chắc chắn muốn đăng xuất?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4338ca',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    localStorage.clear();
+                    window.location.href = '/login';
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+
+</html>

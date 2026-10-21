@@ -1,0 +1,33 @@
+@echo off
+setlocal enabledelayedexpansion
+title Web Client Server (Port 8080)
+cd /d "%~dp0"
+
+echo ============================================================
+echo   KHOI CHAY WEB CLIENT SERVER - HE THONG QUAN LY THU VIEN
+echo   Dia chi truy cap Web: http://localhost:8080
+echo ============================================================
+
+set JAVA_CMD=java
+where java >nul 2>nul
+if %errorlevel% neq 0 (
+    if defined JAVA_HOME (
+        if exist "%JAVA_HOME%\bin\java.exe" set JAVA_CMD="%JAVA_HOME%\bin\java.exe"
+    )
+)
+
+if "%JAVA_CMD%"=="java" (
+    where java >nul 2>nul
+    if %errorlevel% neq 0 (
+        if exist "C:\Program Files\Apache NetBeans\jdk\bin\java.exe" (
+            set JAVA_CMD="C:\Program Files\Apache NetBeans\jdk\bin\java.exe"
+        ) else (
+            for /d %%D in ("C:\Program Files\Java\jdk*") do (
+                if exist "%%D\bin\java.exe" set JAVA_CMD="%%D\bin\java.exe"
+            )
+        )
+    )
+)
+
+%JAVA_CMD% -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.web.WebServerApp
+pause

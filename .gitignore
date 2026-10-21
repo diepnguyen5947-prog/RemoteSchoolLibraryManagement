@@ -1,0 +1,28 @@
+# ==========================================
+# GITIGNORE CHO DỰ ÁN REMOTE SCHOOL LIBRARY
+# ==========================================
+
+# 1. Thư mục biên dịch và tệp thực thi Java
+bin/
+target/
+*.class
+
+# 2. Nhật ký và tệp tạm
+*.log
+*.tmp
+*.bak
+*.swp
+
+# 3. Cấu hình IDE (IntelliJ IDEA, Eclipse, VS Code, NetBeans)
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+nbproject/private/
+
+# 4. Tệp hệ điều hành
+Thumbs.db
+Desktop.ini
+.DS_Store
