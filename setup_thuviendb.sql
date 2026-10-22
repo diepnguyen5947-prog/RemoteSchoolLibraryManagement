@@ -1,4 +1,4 @@
--- =================================================================================
+﻿-- =================================================================================
 -- ĐỒ ÁN: HỆ THỐNG QUẢN LÝ MƯỢN/TRẢ SÁCH THƯ VIỆN TRƯỜNG HỌC
 -- (REMOTE SCHOOL LIBRARY MANAGEMENT SYSTEM)
 -- FILE TỔNG HỢP KHỞI TẠO CSDL MỚI: ThuVienDB (FRESH SETUP ONLY)

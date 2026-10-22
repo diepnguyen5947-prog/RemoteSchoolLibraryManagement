@@ -85,14 +85,12 @@ public class DocGiaDAO {
                     int maDocGia = rs.getInt("MaDocGia");
                     String storedPassword = rs.getString("MatKhau");
 
-                    boolean match = PasswordUtil.verifyPassword(matKhau, storedPassword);
+                    // Hỗ trợ kiểm tra mật khẩu dạng văn bản thuần (plain-text) để dễ dàng demo
+                    // Đồng thời tương thích ngược nếu CSDL còn lưu mã băm cũ
+                    boolean match = (storedPassword != null && storedPassword.equals(matKhau))
+                            || PasswordUtil.verifyPassword(matKhau, storedPassword);
                     if (match) {
-                        // Tự động nâng cấp mật khẩu cũ sang chuỗi băm kèm Salt nếu cần
-                        if (PasswordUtil.isLegacyPassword(storedPassword)) {
-                            upgradePassword(conn, maDocGia, matKhau);
-                        }
-
-                        // Trả về DTO an toàn (không chứa mật khẩu thuần hay mã băm)
+                        // Trả về DTO an toàn (không gửi kèm mật khẩu qua mạng)
                         return new DocGiaDTO(
                                 maDocGia,
                                 rs.getString("HoTen"),
@@ -108,19 +106,6 @@ public class DocGiaDAO {
             }
         }
         return null;
-    }
-
-    private void upgradePassword(Connection conn, int maDocGia, String plainPassword) {
-        String updateSql = "UPDATE DocGia SET MatKhau = ? WHERE MaDocGia = ?";
-        try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
-            String newHashed = PasswordUtil.hashPassword(plainPassword);
-            psUpdate.setString(1, newHashed);
-            psUpdate.setInt(2, maDocGia);
-            psUpdate.executeUpdate();
-            System.out.println("[DocGiaDAO] Đã tự động nâng cấp mật khẩu sang SHA-256 + Salt cho độc giả ID #" + maDocGia);
-        } catch (SQLException e) {
-            System.err.println("[DocGiaDAO] Cảnh báo không thể tự động nâng cấp hash mật khẩu: " + e.getMessage());
-        }
     }
 
     /**
@@ -214,11 +199,10 @@ public class DocGiaDAO {
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             String rawPassword = docGia.getMatKhau() != null ? docGia.getMatKhau().trim() : "123456";
-            String hashedPassword = PasswordUtil.hashPassword(rawPassword);
 
             ps.setNString(1, docGia.getHoTen());
             ps.setString(2, docGia.getEmail().trim());
-            ps.setString(3, hashedPassword);
+            ps.setString(3, rawPassword);
             ps.setString(4, docGia.getSoDienThoai() != null ? docGia.getSoDienThoai().trim() : "");
             ps.setString(5, docGia.getVaiTro() != null ? docGia.getVaiTro() : "READER");
 
