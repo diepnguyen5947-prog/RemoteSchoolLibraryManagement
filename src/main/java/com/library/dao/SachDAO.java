@@ -337,12 +337,36 @@ public class SachDAO {
         try (Connection conn = DBConnection.getConnection();
              Statement st = conn.createStatement()) {
 
-            try (ResultSet rs = st.executeQuery(sqlTongSach)) { if (rs.next()) stats.put("tongSach", rs.getInt(1)); }
-            try (ResultSet rs = st.executeQuery(sqlSachSanSang)) { if (rs.next()) stats.put("sachSanSang", rs.getInt(1)); }
-            try (ResultSet rs = st.executeQuery(sqlSachDangMuon)) { if (rs.next()) stats.put("sachDangMuon", rs.getInt(1)); }
+            try (ResultSet rs = st.executeQuery(sqlTongSach)) {
+                if (rs.next()) {
+                    int val = rs.getInt(1);
+                    stats.put("tongSach", val);
+                    stats.put("tongSoSach", val);
+                }
+            }
+            try (ResultSet rs = st.executeQuery(sqlSachSanSang)) {
+                if (rs.next()) {
+                    int val = rs.getInt(1);
+                    stats.put("sachSanSang", val);
+                    stats.put("soSachSanSang", val);
+                }
+            }
+            try (ResultSet rs = st.executeQuery(sqlSachDangMuon)) {
+                if (rs.next()) {
+                    int val = rs.getInt(1);
+                    stats.put("sachDangMuon", val);
+                    stats.put("soSachDangMuon", val);
+                }
+            }
             try (ResultSet rs = st.executeQuery(sqlSachGiuCho)) { if (rs.next()) stats.put("sachGiuCho", rs.getInt(1)); }
             try (ResultSet rs = st.executeQuery(sqlSachMat)) { if (rs.next()) stats.put("sachMat", rs.getInt(1)); }
-            try (ResultSet rs = st.executeQuery(sqlTongDocGia)) { if (rs.next()) stats.put("tongDocGia", rs.getInt(1)); }
+            try (ResultSet rs = st.executeQuery(sqlTongDocGia)) {
+                if (rs.next()) {
+                    int val = rs.getInt(1);
+                    stats.put("tongDocGia", val);
+                    stats.put("tongSoDocGia", val);
+                }
+            }
             try (ResultSet rs = st.executeQuery(sqlDocGiaKhoa)) { if (rs.next()) stats.put("docGiaKhoa", rs.getInt(1)); }
             try (ResultSet rs = st.executeQuery(sqlTongLuotMuon)) { if (rs.next()) stats.put("tongLuotMuon", rs.getInt(1)); }
             try (ResultSet rs = st.executeQuery(sqlDangMuon)) { if (rs.next()) stats.put("dangMuon", rs.getInt(1)); }

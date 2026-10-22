@@ -343,13 +343,27 @@
                 const result = await res.json();
                 if (result.success && result.data) {
                     const d = result.data;
-                    document.getElementById('statTongSach').textContent = d.tongSoSach;
-                    document.getElementById('statDangMuon').textContent = d.soSachDangMuon;
-                    document.getElementById('statSanSang').textContent = d.soSachSanSang;
-                    document.getElementById('statDocGia').textContent = d.tongSoDocGia;
+                    const tongSach = (d.tongSoSach !== undefined) ? d.tongSoSach : ((d.tongSach !== undefined) ? d.tongSach : 0);
+                    const dangMuon = (d.soSachDangMuon !== undefined) ? d.soSachDangMuon : ((d.sachDangMuon !== undefined) ? d.sachDangMuon : 0);
+                    const sanSang = (d.soSachSanSang !== undefined) ? d.soSachSanSang : ((d.sachSanSang !== undefined) ? d.sachSanSang : 0);
+                    const tongDocGia = (d.tongSoDocGia !== undefined) ? d.tongSoDocGia : ((d.tongDocGia !== undefined) ? d.tongDocGia : 0);
+
+                    document.getElementById('statTongSach').textContent = Number(tongSach).toLocaleString('vi-VN');
+                    document.getElementById('statDangMuon').textContent = Number(dangMuon).toLocaleString('vi-VN');
+                    document.getElementById('statSanSang').textContent = Number(sanSang).toLocaleString('vi-VN');
+                    document.getElementById('statDocGia').textContent = Number(tongDocGia).toLocaleString('vi-VN');
+                } else {
+                    document.getElementById('statTongSach').textContent = '0';
+                    document.getElementById('statDangMuon').textContent = '0';
+                    document.getElementById('statSanSang').textContent = '0';
+                    document.getElementById('statDocGia').textContent = '0';
                 }
             } catch (err) {
                 console.error('Lỗi tải thống kê:', err);
+                document.getElementById('statTongSach').textContent = '0';
+                document.getElementById('statDangMuon').textContent = '0';
+                document.getElementById('statSanSang').textContent = '0';
+                document.getElementById('statDocGia').textContent = '0';
             }
         }
 
