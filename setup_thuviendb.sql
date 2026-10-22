@@ -542,7 +542,7 @@ BEGIN
         IF @SoLuongHuy > 0
         BEGIN
             UPDATE PhieuMuon
-            SET TrangThaiPhieu = 3
+            SET TrangThaiPhieu = 3, TinhTrangSachKhiTra = N'Quá hạn giữ sách 24h'
             WHERE MaPhieu IN (SELECT MaPhieu FROM @DanhSachHuy);
 
             UPDATE Sach

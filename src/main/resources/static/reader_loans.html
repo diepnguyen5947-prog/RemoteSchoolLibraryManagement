@@ -436,10 +436,15 @@
                 } else if (isCanceled) {
                     statusBadge = `
                         <span class="badge status-badge bg-secondary text-white">
-                            <i class="fa-solid fa-ban me-1"></i> Đã hủy (Quá hạn 24h)
+                            <i class="fa-solid fa-ban me-1"></i> Đã hủy
                         </span>
                     `;
-                    actionBtn = `<span class="text-muted small"><i class="fa-solid fa-clock-rotate-left me-1"></i> Quá hạn lấy</span>`;
+                    const isNgungMuon = p.tinhTrangSachKhiTra && p.tinhTrangSachKhiTra.toLowerCase().includes('ngưng mượn');
+                    if (isNgungMuon) {
+                        actionBtn = `<span class="text-muted small"><i class="fa-solid fa-user-xmark me-1"></i> Đã ngưng mượn</span>`;
+                    } else {
+                        actionBtn = `<span class="text-muted small"><i class="fa-solid fa-clock-rotate-left me-1"></i> Quá hạn lấy</span>`;
+                    }
                 } else {
                     statusBadge = `
                         <span class="badge status-badge bg-success text-white">

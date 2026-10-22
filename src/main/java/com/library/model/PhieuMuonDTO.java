@@ -328,7 +328,7 @@ public class PhieuMuonDTO implements Serializable {
         if (trangThaiPhieu == 0) return "Chờ lấy sách";
         if (trangThaiPhieu == 1) return "Đang mượn";
         if (trangThaiPhieu == 2) return "Đã trả sách";
-        if (trangThaiPhieu == 3) return "Đã hủy (Quá hạn 24h)";
+        if (trangThaiPhieu == 3) return "Đã hủy";
         if (trangThaiPhieu == 4) return "Báo mất / Chờ đền bù";
         if (trangThaiPhieu == 5) return "Đã đền bù hoàn tất";
         if (trangThaiPhieu == 6) return "Chờ duyệt trả";

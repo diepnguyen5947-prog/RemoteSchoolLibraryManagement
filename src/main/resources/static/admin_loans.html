@@ -477,7 +477,12 @@
                             <i class="fa-solid fa-ban me-1"></i> Đã hủy
                         </span>
                     `;
-                    action = `<span class="text-muted small"><i class="fa-solid fa-xmark text-danger me-1"></i> Đã hủy</span>`;
+                    const isNgungMuon = p.tinhTrangSachKhiTra && p.tinhTrangSachKhiTra.toLowerCase().includes('ngưng mượn');
+                    if (isNgungMuon) {
+                        action = `<span class="text-muted small"><i class="fa-solid fa-user-xmark me-1"></i> Đã ngưng mượn</span>`;
+                    } else {
+                        action = `<span class="text-muted small"><i class="fa-solid fa-clock-rotate-left me-1"></i> Quá hạn lấy</span>`;
+                    }
                 } else {
                     statusBadge = `
                         <span class="badge status-badge bg-success text-white shadow-sm">
