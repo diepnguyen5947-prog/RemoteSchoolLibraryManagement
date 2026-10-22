@@ -397,7 +397,7 @@
                             const isExpired = l.isQuaHanGiu;
                             badge = `
                                 <span class="badge ${isExpired ? 'bg-danger pulse-badge text-white' : 'bg-warning text-dark'} status-badge shadow-sm">
-                                    <i class="fa-solid fa-clock me-1"></i> Chờ lấy sách
+                                    <i class="fa-solid ${isExpired ? 'fa-clock-rotate-left' : 'fa-clock'} me-1"></i> ${isExpired ? 'Quá giờ lấy sách' : 'Chờ lấy sách'}
                                 </span>
                             `;
                         } else if (isLost) {

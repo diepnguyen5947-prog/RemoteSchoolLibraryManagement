@@ -421,10 +421,14 @@
                     const isExpired = p.isQuaHanGiu;
                     statusBadge = `
                         <span class="badge ${isExpired ? 'bg-danger pulse-badge text-white' : 'bg-warning text-dark'} status-badge shadow-sm">
-                            <i class="fa-solid fa-clock me-1"></i> Chờ lấy sách
+                            <i class="fa-solid ${isExpired ? 'fa-clock-rotate-left' : 'fa-clock'} me-1"></i> ${isExpired ? 'Quá giờ lấy sách' : 'Chờ lấy sách'}
                         </span>
                     `;
-                    action = `
+                    action = isExpired ? `
+                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm fw-bold" onclick="handleConfirmDelivery(${p.maPhieu}, '${escapeHtml(p.tenSach)}', '${escapeHtml(p.tenDocGia)}')">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i> Quá Giờ Lấy Sách
+                        </button>
+                    ` : `
                         <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm fw-bold" onclick="handleConfirmDelivery(${p.maPhieu}, '${escapeHtml(p.tenSach)}', '${escapeHtml(p.tenDocGia)}')">
                             <i class="fa-solid fa-hand-holding-hand me-1"></i> Xác Nhận Giao Sách
                         </button>
@@ -818,7 +822,13 @@
                         loadLoans();
                     });
                 } else {
-                    Swal.fire('Lỗi', result.message || 'Không thể xác nhận giao sách!', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Không Thể Giao Sách',
+                        text: result.message || 'Không thể xác nhận giao sách!'
+                    }).then(() => {
+                        loadLoans();
+                    });
                 }
             } catch (err) {
                 Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');

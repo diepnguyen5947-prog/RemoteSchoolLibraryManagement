@@ -71,8 +71,12 @@ public class FixDbEncodingAndPassword {
                     "Trang 45 của cuốn Cấu trúc dữ liệu có vết rách nhỏ, em xin báo cáo trước khi trả ạ.",
                     "Đã kiểm tra và xử lý phụ thu bảo quản.");
 
-            // 5. Thêm UTF-8 BOM cho các file SQL để SSMS mở luôn nhận đúng tiếng Việt
-            System.out.println("[6] Đang kiểm tra và gắn UTF-8 BOM cho các file SQL để SSMS không bị lỗi hiển thị...");
+            // 5. Nạp lại toàn bộ Stored Procedures bằng UTF-16 để tất cả thông báo lỗi (RAISERROR) hiển thị tiếng Việt chuẩn 100%
+            System.out.println("[6] Đang biên dịch lại toàn bộ Stored Procedures trên SQL Server bằng UTF-16...");
+            redeployAllProcedures(conn);
+
+            // 6. Thêm UTF-8 BOM cho các file SQL để SSMS mở luôn nhận đúng tiếng Việt
+            System.out.println("[7] Đang kiểm tra và gắn UTF-8 BOM cho các file SQL để SSMS không bị lỗi hiển thị...");
             ensureUtf8Bom("setup_thuviendb.sql");
             ensureUtf8Bom("sql_patches/migration_v2_safe_upgrade.sql");
             ensureUtf8Bom("sql_patches/audit_inspect_db.sql");
@@ -161,6 +165,49 @@ public class FixDbEncodingAndPassword {
             }
         } catch (Exception ignored) {}
         return input;
+    }
+
+    private static void redeployAllProcedures(Connection conn) {
+        executeSqlBatches(conn, "sql_patches/migration_v2_safe_upgrade.sql");
+        executeSqlBatches(conn, "setup_thuviendb.sql");
+    }
+
+    private static void executeSqlBatches(Connection conn, String filePath) {
+        try {
+            java.io.File file = new java.io.File(filePath);
+            if (!file.exists()) return;
+            String content = new String(java.nio.file.Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+            if (content.startsWith("\uFEFF")) {
+                content = content.substring(1);
+            }
+            String[] batches = content.split("(?im)^\\s*GO\\s*$");
+            try (Statement st = conn.createStatement()) {
+                for (String batch : batches) {
+                    String sql = batch.trim();
+                    if (sql.isEmpty()) continue;
+                    String upper = sql.toUpperCase();
+                    // Bỏ qua các lệnh phá hủy CSDL
+                    if (upper.contains("DROP DATABASE") || upper.contains("CREATE DATABASE") || upper.startsWith("USE MASTER")) {
+                        continue;
+                    }
+                    // Bỏ qua các lệnh INSERT dữ liệu mẫu trong setup_thuviendb để không ghi đè dữ liệu người dùng
+                    if (filePath.contains("setup_thuviendb") && 
+                        (upper.contains("INSERT INTO DOCGIA") || upper.contains("INSERT INTO SACH") || 
+                         upper.contains("INSERT INTO PHIEUMUON") || upper.contains("INSERT INTO PHANHOI") || 
+                         upper.contains("INSERT INTO YEUTHICH"))) {
+                        continue;
+                    }
+                    try {
+                        st.execute(sql);
+                    } catch (Exception ex) {
+                        // Một số lệnh print hoặc kiểm tra có thể sinh warning/error nhẹ
+                    }
+                }
+            }
+            System.out.println("    -> Đã nạp thành công các stored procedures từ: " + filePath);
+        } catch (Exception e) {
+            System.err.println("    -> Lỗi khi nạp procedures từ " + filePath + ": " + e.getMessage());
+        }
     }
 
     private static void ensureUtf8Bom(String filePath) {

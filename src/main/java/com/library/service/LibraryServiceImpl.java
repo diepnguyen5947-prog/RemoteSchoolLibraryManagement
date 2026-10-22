@@ -243,7 +243,18 @@ public class LibraryServiceImpl extends UnicastRemoteObject implements ILibraryS
         try {
             return phieuMuonDAO.xacNhanGiaoSach(maPhieu, soNgayMuon);
         } catch (SQLException e) {
-            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi xác nhận giao sách: " + e.getMessage(), e);
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("ERR_HOLD_EXPIRED")) {
+                throw new LibraryException(LibraryConstants.ERR_INVALID_STATE, "Phiếu mượn đã quá hạn 24 giờ giữ sách và đã tự động chuyển sang Đã hủy!", e);
+            }
+            if (msg != null && msg.contains("ERR_LOAN_NOT_FOUND")) {
+                throw new LibraryException(LibraryConstants.ERR_LOAN_NOT_FOUND, "Phiếu mượn #" + maPhieu + " không tồn tại!", e);
+            }
+            if (msg != null && msg.contains("ERR_INVALID_LOAN_STATE")) {
+                throw new LibraryException(LibraryConstants.ERR_INVALID_STATE, "Phiếu mượn #" + maPhieu + " không ở trạng thái Chờ lấy sách!", e);
+            }
+            String cleanMsg = msg != null ? msg.replace("ERR_HOLD_EXPIRED: ", "").replace("ERR_LOAN_NOT_FOUND: ", "").replace("ERR_INVALID_LOAN_STATE: ", "") : "";
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi xác nhận giao sách: " + cleanMsg, e);
         }
     }
 
@@ -253,7 +264,20 @@ public class LibraryServiceImpl extends UnicastRemoteObject implements ILibraryS
         try {
             return phieuMuonDAO.traSach(maPhieu, tienPhuThu, tinhTrangSach);
         } catch (SQLException e) {
-            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi xác nhận trả sách: " + e.getMessage(), e);
+            String msg = e.getMessage();
+            if (msg != null) {
+                if (msg.contains("ERR_LOAN_NOT_FOUND")) {
+                    throw new LibraryException(LibraryConstants.ERR_LOAN_NOT_FOUND, "Phiếu mượn #" + maPhieu + " không tồn tại!", e);
+                }
+                if (msg.contains("ERR_ALREADY_RETURNED")) {
+                    throw new LibraryException(LibraryConstants.ERR_INVALID_STATE, "Phiếu mượn này đã được hoàn tất trả trước đó!", e);
+                }
+                if (msg.contains("ERR_HOLD_NOT_PICKED_UP")) {
+                    throw new LibraryException(LibraryConstants.ERR_INVALID_STATE, "Phiếu mượn đang ở trạng thái Chờ lấy sách, chưa được giao tại quầy!", e);
+                }
+            }
+            String cleanMsg = msg != null ? msg.replace("ERR_LOAN_NOT_FOUND: ", "").replace("ERR_ALREADY_RETURNED: ", "").replace("ERR_HOLD_NOT_PICKED_UP: ", "") : "";
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi xác nhận trả sách: " + cleanMsg, e);
         }
     }
 
@@ -263,7 +287,12 @@ public class LibraryServiceImpl extends UnicastRemoteObject implements ILibraryS
         try {
             return phieuMuonDAO.xacNhanDenBu(maPhieu);
         } catch (SQLException e) {
-            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi xác nhận đền bù: " + e.getMessage(), e);
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("ERR_NOT_IN_LOST_STATE")) {
+                throw new LibraryException(LibraryConstants.ERR_INVALID_STATE, "Phiếu mượn không ở trạng thái Báo mất / Chờ đền bù!", e);
+            }
+            String cleanMsg = msg != null ? msg.replace("ERR_NOT_IN_LOST_STATE: ", "").replace("ERR_LOAN_NOT_FOUND: ", "") : "";
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi xác nhận đền bù: " + cleanMsg, e);
         }
     }
 

@@ -442,7 +442,7 @@ BEGIN
             UPDATE Sach SET TrangThai = 0 WHERE MaSach = @MaSach;
             COMMIT TRANSACTION;
 
-            RAISERROR(N'Lỗi: Phiếu mượn đã quá hạn 24 giờ giữ sách và đã tự động chuyển sang Đã hủy!', 16, 1);
+            RAISERROR(N'ERR_HOLD_EXPIRED: Phiếu mượn đã quá hạn 24 giờ giữ sách và đã tự động chuyển sang Đã hủy!', 16, 1);
             RETURN -3;
         END
 
