@@ -373,8 +373,8 @@
                         </div>
                     `;
                     actionBtn = `
-                        <button class="btn btn-sm btn-outline-warning rounded-pill px-3" disabled title="Vui lòng đến quầy thư viện để nhận sách và Thủ thư sẽ giao sách!">
-                            <i class="fa-solid fa-hand-holding me-1"></i> Chờ Đến Lấy
+                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm" onclick="cancelHoldLoan(${p.maPhieu}, '${escapeHtml(p.tenSach)}')" title="Hủy yêu cầu giữ chỗ cuốn sách này để trả sách về trạng thái Sẵn sàng">
+                            <i class="fa-solid fa-ban me-1"></i> Ngưng Mượn
                         </button>
                     `;
                 } else if (isLost) {
@@ -540,6 +540,51 @@
                     });
                 } else {
                     Swal.fire('Lỗi', result.message || 'Không thể báo mất sách!', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');
+            }
+        }
+
+        async function cancelHoldLoan(maPhieu, tenSach) {
+            const confirmRes = await Swal.fire({
+                title: 'Xác Nhận Ngưng Mượn?',
+                html: `<div class="text-start">
+                    <p class="mb-2">Bạn có chắc chắn muốn ngưng mượn cuốn sách:</p>
+                    <div class="p-2 bg-light rounded-3 fw-bold text-primary mb-3">${escapeHtml(tenSach)} (Mã phiếu #${maPhieu})</div>
+                    <div class="alert alert-info small mb-0 border-0">
+                        <i class="fa-solid fa-circle-info me-1"></i> Sau khi ngưng mượn, yêu cầu giữ sách sẽ được hủy và cuốn sách sẽ lập tức trở về trạng thái <strong>Sẵn sàng</strong> để bạn hoặc độc giả khác mượn.
+                    </div>
+                </div>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-ban me-1"></i> Đồng Ý Ngưng Mượn',
+                cancelButtonText: 'Đóng'
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            try {
+                const res = await fetch('/api/phieu-muon/ngung-muon', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `maPhieu=${encodeURIComponent(maPhieu)}`
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã Ngưng Mượn Thành Công!',
+                        text: result.message || 'Yêu cầu giữ sách đã được hủy. Bạn có thể chọn mượn cuốn sách khác!',
+                        confirmButtonColor: '#4338ca'
+                    }).then(() => {
+                        loadMyLoans();
+                    });
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Không thể ngưng mượn sách!', 'error');
                 }
             } catch (err) {
                 Swal.fire('Lỗi', 'Lỗi kết nối máy chủ: ' + err.message, 'error');

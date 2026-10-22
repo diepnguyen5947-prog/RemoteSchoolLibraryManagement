@@ -71,6 +71,17 @@ public interface ILibraryService extends Remote {
     boolean baoMatSach(String token, int maPhieu) throws RemoteException, LibraryException;
 
     /**
+     * Độc giả chủ động ngưng mượn sách (hủy yêu cầu giữ chỗ khi đang ở trạng thái Chờ lấy sách - TrangThaiPhieu = 0).
+     * Trả sách về trạng thái Sẵn sàng (0) và chuyển trạng thái phiếu mượn sang Đã hủy (3).
+     * @param token Phiên đăng nhập của độc giả hoặc thủ thư
+     * @param maPhieu Mã phiếu mượn cần ngưng mượn
+     * @return true nếu thao tác thành công
+     * @throws RemoteException nếu xảy ra lỗi truyền thông RMI
+     * @throws LibraryException nếu có vi phạm nghiệp vụ
+     */
+    boolean huyPhieuGiuCho(String token, int maPhieu) throws RemoteException, LibraryException;
+
+    /**
      * Lấy danh sách phiếu mượn của chính độc giả đang đăng nhập.
      */
     List<PhieuMuonDTO> getPhieuMuonByDocGia(String token) throws RemoteException, LibraryException;

@@ -319,6 +319,27 @@ public class BookApiController implements HttpHandler {
                 sendJsonResponse(exchange, 400, JsonUtil.errorResponse("Định dạng maPhieu không đúng kiểu số!"));
             }
         }
+        else if ("/api/phieu-muon/ngung-muon".equals(path) || "/api/phieu-muon/huy-giu-cho".equals(path) || "/api/ngung-muon".equals(path)) {
+            if (token == null || token.isEmpty()) {
+                sendJsonResponse(exchange, 401, JsonUtil.errorResponse("Yêu cầu đăng nhập để ngưng mượn sách!"));
+                return;
+            }
+            try {
+                int maPhieu = Integer.parseInt(params.getOrDefault("maPhieu", "0"));
+                if (maPhieu <= 0) {
+                    sendJsonResponse(exchange, 400, JsonUtil.errorResponse("Mã phiếu không hợp lệ!"));
+                    return;
+                }
+                boolean ok = service.huyPhieuGiuCho(token, maPhieu);
+                if (ok) {
+                    sendJsonResponse(exchange, 200, JsonUtil.successResponse("Đã ngưng mượn thành công! Cuốn sách đã được chuyển về trạng thái Sẵn sàng.", null));
+                } else {
+                    sendJsonResponse(exchange, 400, JsonUtil.errorResponse("Không thể ngưng mượn. Yêu cầu giữ sách không ở trạng thái Chờ lấy sách!"));
+                }
+            } catch (NumberFormatException e) {
+                sendJsonResponse(exchange, 400, JsonUtil.errorResponse("Định dạng maPhieu không đúng kiểu số!"));
+            }
+        }
 
         // 3. QUẢN TRỊ THỦ THƯ (LIBRARIAN APIS)
         else if ("/api/tra-sach".equals(path) || "/api/admin/tra-sach".equals(path) || "/api/admin/xac-nhan-tra-sach".equals(path)) {

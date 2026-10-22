@@ -1,4 +1,4 @@
-﻿-- =================================================================================
+-- =================================================================================
 -- BẢN MIGRATION NÂNG CẤP AN TOÀN CHO HỆ THỐNG THƯ VIỆN (MIGRATION V2)
 -- ĐỒ ÁN: REMOTE SCHOOL LIBRARY MANAGEMENT - HỌC PHẦN CMP180
 -- =================================================================================
@@ -130,7 +130,7 @@ BEGIN
 
         IF @SoLuongDangChiêmDung >= 3
         BEGIN
-            RAISERROR(N'ERR_LOAN_LIMIT_EXCEEDED: Độc giả đã có 3 cuốn sách đang giữ chỗ hoặc mượn chưa hoàn tất. Vui lòng hoàn tất các phiếu trước!', 16, 1);
+            RAISERROR(N'ERR_LOAN_LIMIT_EXCEEDED: Bạn chỉ được mượn tối đa 3 cuốn sách', 16, 1);
             ROLLBACK TRANSACTION;
             RETURN -4;
         END

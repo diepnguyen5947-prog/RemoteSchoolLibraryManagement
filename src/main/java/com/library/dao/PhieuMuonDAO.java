@@ -1,5 +1,6 @@
 package com.library.dao;
 
+import com.library.model.LibraryConstants;
 import com.library.model.PhieuMuonDTO;
 
 import java.sql.CallableStatement;
@@ -147,6 +148,93 @@ public class PhieuMuonDAO {
             }
             cs.execute();
             return true;
+        }
+    }
+
+    /**
+     * Đếm số lượng sách độc giả đang giữ chỗ hoặc đang mượn chưa hoàn tất (TrangThaiPhieu IN (0, 1, 4, 6)).
+     * @param maDocGia Mã độc giả
+     * @return Số lượng sách đang chiếm dụng
+     * @throws SQLException nếu xảy ra lỗi CSDL
+     */
+    public int demSoSachDangMuon(int maDocGia) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM PhieuMuon WHERE MaDocGia = ? AND TrangThaiPhieu IN (0, 1, 4, 6)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, maDocGia);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Độc giả hoặc thủ thư ngưng mượn sách khi phiếu đang ở trạng thái Chờ lấy sách (TrangThaiPhieu = 0).
+     * Đổi trạng thái phiếu sang Đã hủy (3) và phục hồi sách về Sẵn sàng (0).
+     * @param maPhieu Mã phiếu mượn
+     * @param maDocGia Mã độc giả (hoặc 0 nếu thủ thư thực hiện)
+     * @return true nếu hủy thành công
+     * @throws SQLException nếu xảy ra lỗi CSDL hoặc vi phạm trạng thái
+     */
+    public boolean huyPhieuGiuCho(int maPhieu, int maDocGia) throws SQLException {
+        String checkSql = "SELECT MaSach, TrangThaiPhieu, MaDocGia FROM PhieuMuon WITH (UPDLOCK, ROWLOCK) WHERE MaPhieu = ?";
+        String updatePhieuSql = "UPDATE PhieuMuon SET TrangThaiPhieu = ?, TinhTrangSachKhiTra = ? WHERE MaPhieu = ?";
+        String updateSachSql = "UPDATE Sach SET TrangThai = ? WHERE MaSach = ?";
+
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int maSach = 0;
+                int trangThaiPhieu = -1;
+                int ownerDocGia = 0;
+
+                try (PreparedStatement psCheck = conn.prepareStatement(checkSql)) {
+                    psCheck.setInt(1, maPhieu);
+                    try (ResultSet rs = psCheck.executeQuery()) {
+                        if (rs.next()) {
+                            maSach = rs.getInt("MaSach");
+                            trangThaiPhieu = rs.getInt("TrangThaiPhieu");
+                            ownerDocGia = rs.getInt("MaDocGia");
+                        } else {
+                            throw new SQLException("Phiếu mượn mã #" + maPhieu + " không tồn tại!");
+                        }
+                    }
+                }
+
+                if (maDocGia > 0 && ownerDocGia != maDocGia) {
+                    throw new SQLException("Bạn không có quyền thao tác trên phiếu mượn của người khác!");
+                }
+
+                if (trangThaiPhieu != LibraryConstants.PHIEU_CHO_LAY) {
+                    throw new SQLException("Chỉ có thể ngưng mượn khi yêu cầu đang ở trạng thái Chờ đến lấy!");
+                }
+
+                // 1. Cập nhật phiếu mượn sang Đã hủy (3)
+                try (PreparedStatement psPhieu = conn.prepareStatement(updatePhieuSql)) {
+                    psPhieu.setInt(1, LibraryConstants.PHIEU_DA_HUY);
+                    psPhieu.setString(2, "Độc giả chủ động ngưng mượn");
+                    psPhieu.setInt(3, maPhieu);
+                    psPhieu.executeUpdate();
+                }
+
+                // 2. Phục hồi trạng thái sách về Sẵn sàng (0)
+                try (PreparedStatement psSach = conn.prepareStatement(updateSachSql)) {
+                    psSach.setInt(1, LibraryConstants.SACH_SAN_SANG);
+                    psSach.setInt(2, maSach);
+                    psSach.executeUpdate();
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
         }
     }
 

@@ -676,7 +676,7 @@
                     let errMsg = result.message || 'Không thể mượn sách!';
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Chưa Thể Mượn Sách',
+                        title: (errMsg.includes('tối đa') || errMsg.includes('3 cuốn')) ? 'Hạn Mức Mượn Sách' : 'Chưa Thể Mượn Sách',
                         text: errMsg,
                         confirmButtonColor: '#4338ca',
                         confirmButtonText: 'Đã Hiểu'

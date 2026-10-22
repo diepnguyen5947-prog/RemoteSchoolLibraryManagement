@@ -1068,7 +1068,14 @@
                     // Tải lại chi tiết sách để cập nhật trạng thái mới
                     loadBookDetail(bookData.maSach);
                 } else {
-                    Swal.fire('Mượn Sách Không Thành Công', result.message || 'Sách có thể vừa được người khác mượn!', 'error');
+                    const errMsg = result.message || 'Sách có thể vừa được người khác mượn!';
+                    const isLimit = errMsg.includes('tối đa') || errMsg.includes('3 cuốn');
+                    Swal.fire({
+                        icon: isLimit ? 'warning' : 'error',
+                        title: isLimit ? 'Hạn Mức Mượn Sách' : 'Mượn Sách Không Thành Công',
+                        text: errMsg,
+                        confirmButtonColor: '#ea580c'
+                    });
                     loadBookDetail(bookData.maSach);
                 }
             } catch (err) {

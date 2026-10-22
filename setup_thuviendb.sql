@@ -1,4 +1,4 @@
-﻿-- =================================================================================
+-- =================================================================================
 -- ĐỒ ÁN: HỆ THỐNG QUẢN LÝ MƯỢN/TRẢ SÁCH THƯ VIỆN TRƯỜNG HỌC
 -- (REMOTE SCHOOL LIBRARY MANAGEMENT SYSTEM)
 -- FILE TỔNG HỢP KHỞI TẠO CSDL MỚI: ThuVienDB (FRESH SETUP ONLY)
@@ -244,6 +244,10 @@ GO
 -- 3.3. Stored Procedure: sp_KiemTraVaMuonSach
 -- Đăng ký giữ sách từ xa (Remote Hold).
 -- Sử dụng Transaction kết hợp UPDLOCK + ROWLOCK + HOLDLOCK để chống tranh chấp đồng thời (Concurrency Control).
+SET ANSI_NULLS ON;
+GO
+SET QUOTED_IDENTIFIER ON;
+GO
 CREATE OR ALTER PROCEDURE sp_KiemTraVaMuonSach
     @MaDocGia INT,
     @MaSach INT,
@@ -305,7 +309,7 @@ BEGIN
 
         IF @SoLuongDangGiuHoacMuon >= 3
         BEGIN
-            RAISERROR(N'Lỗi: Độc giả đã có 3 cuốn sách đang giữ chỗ hoặc đang mượn chưa trả. Vui lòng nhận sách hoặc trả bớt sách trước!', 16, 1);
+            RAISERROR(N'ERR_LOAN_LIMIT_EXCEEDED: Bạn chỉ được mượn tối đa 3 cuốn sách', 16, 1);
             ROLLBACK TRANSACTION;
             RETURN -4;
         END

@@ -157,6 +157,13 @@ public class LibraryServiceImpl extends UnicastRemoteObject implements ILibraryS
                 throw new LibraryException(LibraryConstants.ERR_ACCOUNT_LOCKED_OVERDUE, 
                         "TÀI KHOẢN ĐANG BỊ KHOÁ DO CÓ SÁCH QUÁ HẠN > 10 NGÀY");
             }
+
+            // Kiểm tra hạn mức mượn tối đa 3 cuốn sách
+            int soLuongDangMuon = phieuMuonDAO.demSoSachDangMuon(maDocGia);
+            if (soLuongDangMuon >= 3) {
+                throw new LibraryException(LibraryConstants.ERR_LOAN_LIMIT_EXCEEDED, 
+                        "Bạn chỉ được mượn tối đa 3 cuốn sách");
+            }
         } catch (SQLException e) {
             throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi kiểm tra trạng thái độc giả: " + e.getMessage(), e);
         }
@@ -165,12 +172,9 @@ public class LibraryServiceImpl extends UnicastRemoteObject implements ILibraryS
             return phieuMuonDAO.muonSach(maDocGia, maSach, soNgayMuon);
         } catch (SQLException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
-            if (msg.contains("ERR_BOOK_RESERVED") || msg.contains("ERR_BOOK_ALREADY_BORROWED") || 
-                msg.contains("ERR_BOOK_UNAVAILABLE") || msg.contains("UQ_PhieuMuon_ActiveSach") || 
-                msg.contains("2601") || msg.contains("2627") ||
-                msg.contains("đã được mượn") || msg.contains("đang được mượn") || msg.contains("giữ chỗ")) {
-                throw new LibraryException(LibraryConstants.ERR_BOOK_NOT_AVAILABLE, 
-                        "Sách đang được mượn hoặc giữ chỗ bởi độc giả khác!", e);
+            if (msg.contains("ERR_LOAN_LIMIT_EXCEEDED") || msg.contains("tối đa 3") || msg.contains("tối đa") || msg.contains("hạn mức") || msg.contains("3 cuốn")) {
+                throw new LibraryException(LibraryConstants.ERR_LOAN_LIMIT_EXCEEDED, 
+                        "Bạn chỉ được mượn tối đa 3 cuốn sách", e);
             }
             if (msg.contains("ERR_ACCOUNT_LOCKED_LOST") || msg.contains("MẤT SÁCH") || msg.contains("mất sách")) {
                 throw new LibraryException(LibraryConstants.ERR_ACCOUNT_LOCKED_LOST, 
@@ -180,9 +184,12 @@ public class LibraryServiceImpl extends UnicastRemoteObject implements ILibraryS
                 throw new LibraryException(LibraryConstants.ERR_ACCOUNT_LOCKED_OVERDUE, 
                         "TÀI KHOẢN ĐANG BỊ KHOÁ DO CÓ SÁCH QUÁ HẠN > 10 NGÀY", e);
             }
-            if (msg.contains("ERR_LOAN_LIMIT_EXCEEDED") || msg.contains("tối đa") || msg.contains("hạn mức")) {
-                throw new LibraryException(LibraryConstants.ERR_LOAN_LIMIT_EXCEEDED, 
-                        "Bạn đã mượn tối đa số sách cho phép (3 cuốn)!", e);
+            if (msg.contains("ERR_BOOK_RESERVED") || msg.contains("ERR_BOOK_ALREADY_BORROWED") || 
+                msg.contains("ERR_BOOK_UNAVAILABLE") || msg.contains("UQ_PhieuMuon_ActiveSach") || 
+                msg.contains("2601") || msg.contains("2627") ||
+                msg.contains("đã được mượn") || msg.contains("đang được mượn") || msg.contains("giữ chỗ")) {
+                throw new LibraryException(LibraryConstants.ERR_BOOK_NOT_AVAILABLE, 
+                        "Sách đang được mượn hoặc giữ chỗ bởi độc giả khác!", e);
             }
             if (msg.contains("ERR_BOOK_NOT_FOUND")) {
                 throw new LibraryException(LibraryConstants.ERR_BOOK_NOT_FOUND, 
@@ -223,6 +230,31 @@ public class LibraryServiceImpl extends UnicastRemoteObject implements ILibraryS
             return phieuMuonDAO.baoMatSach(maPhieu);
         } catch (SQLException e) {
             throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi báo mất sách: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean huyPhieuGiuCho(String token, int maPhieu) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        try {
+            PhieuMuonDTO pm = phieuMuonDAO.getPhieuMuonById(maPhieu);
+            if (pm == null) {
+                throw new LibraryException(LibraryConstants.ERR_LOAN_NOT_FOUND, "Phiếu mượn mã #" + maPhieu + " không tồn tại!");
+            }
+            if (!caller.isLibrarian() && pm.getMaDocGia() != caller.getMaDocGia()) {
+                throw new LibraryException(LibraryConstants.ERR_FORBIDDEN, "Bạn không có quyền thao tác trên phiếu mượn của người khác!");
+            }
+            if (pm.getTrangThaiPhieu() != LibraryConstants.PHIEU_CHO_LAY) {
+                throw new LibraryException(LibraryConstants.ERR_INVALID_STATE, "Chỉ có thể ngưng mượn khi yêu cầu đang ở trạng thái Chờ đến lấy!");
+            }
+            boolean ok = phieuMuonDAO.huyPhieuGiuCho(maPhieu, caller.isLibrarian() ? 0 : caller.getMaDocGia());
+            if (ok) {
+                System.out.println(String.format("[RMI Server] Độc giả #%d (%s) đã ngưng mượn phiếu #%d (Sách #%d). Sách đã chuyển lại Sẵn sàng.",
+                        caller.getMaDocGia(), caller.getHoTen(), maPhieu, pm.getMaSach()));
+            }
+            return ok;
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi ngưng mượn sách: " + e.getMessage(), e);
         }
     }
 
