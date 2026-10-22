@@ -667,7 +667,7 @@
                             const resLoans = await fetch('/api/phieu-muon');
                             const loansResult = await resLoans.json();
                             if (loansResult.success && loansResult.data) {
-                                const activeLoan = loansResult.data.find(p => p.maSach == bookData.maSach && p.trangThaiPhieu !== 1);
+                                const activeLoan = loansResult.data.find(p => p.maSach == bookData.maSach && (p.trangThaiPhieu === 1 || p.trangThaiPhieu === 0));
                                 if (activeLoan && activeLoan.ngayHenTra) {
                                     bookData.ngayHenTra = activeLoan.ngayHenTra;
                                 }

@@ -69,8 +69,13 @@ public class JsonUtil {
         }
         imgArrayJson.append("]");
 
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String ngayHenTraJson = (s.getNgayHenTra() != null)
+                ? "\"" + sdf.format(s.getNgayHenTra()) + "\""
+                : "null";
+
         return String.format(
-                "{\"maSach\":%d,\"tenSach\":\"%s\",\"tacGia\":\"%s\",\"namXuatBan\":%d,\"trangThai\":%d,\"moTaTrangThai\":\"%s\",\"giaTien\":%d,\"hinhAnh\":\"%s\",\"danhSachHinhAnh\":%s,\"rawHinhAnh\":\"%s\"}",
+                "{\"maSach\":%d,\"tenSach\":\"%s\",\"tacGia\":\"%s\",\"namXuatBan\":%d,\"trangThai\":%d,\"moTaTrangThai\":\"%s\",\"giaTien\":%d,\"hinhAnh\":\"%s\",\"danhSachHinhAnh\":%s,\"rawHinhAnh\":\"%s\",\"ngayHenTra\":%s}",
                 s.getMaSach(),
                 escape(s.getTenSach()),
                 escape(s.getTacGia()),
@@ -80,7 +85,8 @@ public class JsonUtil {
                 s.getGiaTien(),
                 escape(mainCover),
                 imgArrayJson.toString(),
-                escape(raw)
+                escape(raw),
+                ngayHenTraJson
         );
     }
 

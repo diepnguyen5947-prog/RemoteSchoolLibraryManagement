@@ -29,7 +29,9 @@ public class SachDAO {
      */
     public List<SachDTO> getAllBooks() throws SQLException {
         List<SachDTO> list = new ArrayList<>();
-        String sql = "SELECT MaSach, TenSach, TacGia, NamXuatBan, TrangThai, HinhAnh, ISNULL(GiaTien, 50000) AS GiaTien FROM Sach ORDER BY MaSach ASC";
+        String sql = "SELECT s.MaSach, s.TenSach, s.TacGia, s.NamXuatBan, s.TrangThai, s.HinhAnh, ISNULL(s.GiaTien, 50000) AS GiaTien, " +
+                     "(SELECT TOP 1 pm.NgayHenTra FROM PhieuMuon pm WHERE pm.MaSach = s.MaSach AND pm.TrangThaiPhieu IN (0, 1) ORDER BY pm.MaPhieu DESC) AS NgayHenTra " +
+                     "FROM Sach s ORDER BY s.MaSach ASC";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -45,6 +47,10 @@ public class SachDAO {
                         rs.getString("HinhAnh"),
                         rs.getInt("GiaTien")
                 );
+                java.sql.Timestamp ts = rs.getTimestamp("NgayHenTra");
+                if (ts != null) {
+                    s.setNgayHenTra(new java.util.Date(ts.getTime()));
+                }
                 list.add(s);
             }
         }
@@ -59,8 +65,9 @@ public class SachDAO {
      */
     public List<SachDTO> searchBooks(String keyword) throws SQLException {
         List<SachDTO> list = new ArrayList<>();
-        String sql = "SELECT MaSach, TenSach, TacGia, NamXuatBan, TrangThai, HinhAnh, ISNULL(GiaTien, 50000) AS GiaTien FROM Sach " +
-                     "WHERE TenSach LIKE ? OR TacGia LIKE ? ORDER BY MaSach ASC";
+        String sql = "SELECT s.MaSach, s.TenSach, s.TacGia, s.NamXuatBan, s.TrangThai, s.HinhAnh, ISNULL(s.GiaTien, 50000) AS GiaTien, " +
+                     "(SELECT TOP 1 pm.NgayHenTra FROM PhieuMuon pm WHERE pm.MaSach = s.MaSach AND pm.TrangThaiPhieu IN (0, 1) ORDER BY pm.MaPhieu DESC) AS NgayHenTra " +
+                     "FROM Sach s WHERE s.TenSach LIKE ? OR s.TacGia LIKE ? ORDER BY s.MaSach ASC";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -80,6 +87,10 @@ public class SachDAO {
                             rs.getString("HinhAnh"),
                             rs.getInt("GiaTien")
                     );
+                    java.sql.Timestamp ts = rs.getTimestamp("NgayHenTra");
+                    if (ts != null) {
+                        s.setNgayHenTra(new java.util.Date(ts.getTime()));
+                    }
                     list.add(s);
                 }
             }
@@ -94,7 +105,9 @@ public class SachDAO {
      * @throws SQLException nếu xảy ra lỗi CSDL
      */
     public SachDTO getBookById(int maSach) throws SQLException {
-        String sql = "SELECT MaSach, TenSach, TacGia, NamXuatBan, TrangThai, HinhAnh, ISNULL(GiaTien, 50000) AS GiaTien FROM Sach WHERE MaSach = ?";
+        String sql = "SELECT s.MaSach, s.TenSach, s.TacGia, s.NamXuatBan, s.TrangThai, s.HinhAnh, ISNULL(s.GiaTien, 50000) AS GiaTien, " +
+                     "(SELECT TOP 1 pm.NgayHenTra FROM PhieuMuon pm WHERE pm.MaSach = s.MaSach AND pm.TrangThaiPhieu IN (0, 1) ORDER BY pm.MaPhieu DESC) AS NgayHenTra " +
+                     "FROM Sach s WHERE s.MaSach = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -102,7 +115,7 @@ public class SachDAO {
             ps.setInt(1, maSach);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new SachDTO(
+                    SachDTO s = new SachDTO(
                             rs.getInt("MaSach"),
                             rs.getString("TenSach"),
                             rs.getString("TacGia"),
@@ -111,6 +124,11 @@ public class SachDAO {
                             rs.getString("HinhAnh"),
                             rs.getInt("GiaTien")
                     );
+                    java.sql.Timestamp ts = rs.getTimestamp("NgayHenTra");
+                    if (ts != null) {
+                        s.setNgayHenTra(new java.util.Date(ts.getTime()));
+                    }
+                    return s;
                 }
             }
         }

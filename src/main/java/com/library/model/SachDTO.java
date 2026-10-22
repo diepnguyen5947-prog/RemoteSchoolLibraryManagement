@@ -16,6 +16,7 @@ public class SachDTO implements Serializable {
     private int trangThai; // 0: Sẵn sàng mượn, 1: Đang mượn, -2: Đã mất hẳn
     private String hinhAnh; // Đường dẫn ảnh bìa hoặc URL ảnh
     private int giaTien = 50000; // Giá niêm yết của cuốn sách (VNĐ)
+    private java.util.Date ngayHenTra; // Ngày hẹn trả dự kiến nếu sách đang được mượn/giữ chỗ
 
     public SachDTO() {
     }
@@ -125,6 +126,14 @@ public class SachDTO implements Serializable {
 
     public void setGiaTien(int giaTien) {
         this.giaTien = giaTien > 0 ? giaTien : 50000;
+    }
+
+    public java.util.Date getNgayHenTra() {
+        return ngayHenTra;
+    }
+
+    public void setNgayHenTra(java.util.Date ngayHenTra) {
+        this.ngayHenTra = ngayHenTra;
     }
 
     public String getTrangThaiText() {
