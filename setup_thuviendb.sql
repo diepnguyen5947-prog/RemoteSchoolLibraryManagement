@@ -1,16 +1,13 @@
 -- =================================================================================
 -- ĐỒ ÁN: HỆ THỐNG QUẢN LÝ MƯỢN/TRẢ SÁCH THƯ VIỆN TRƯỜNG HỌC
 -- (REMOTE SCHOOL LIBRARY MANAGEMENT SYSTEM)
--- FILE TỔNG HỢP TOÀN BỘ CƠ SỞ DỮ LIỆU: ThuVienDB
+-- FILE TỔNG HỢP KHỞI TẠO CSDL MỚI: ThuVienDB (FRESH SETUP ONLY)
 -- HỆ QUẢN TRỊ CSDL: MICROSOFT SQL SERVER
 -- =================================================================================
--- HƯỚNG DẪN SỬ DỤNG:
--- 1. Mở SQL Server Management Studio (SSMS) hoặc Azure Data Studio.
--- 2. Kết nối tới SQL Server (localhost hoặc 127.0.0.1, port 1433).
--- 3. Mở file này và nhấn [Execute] (hoặc F5).
---    Hoặc chạy bằng command line:
---    sqlcmd -S 127.0.0.1,1433 -U sa -P 123456 -i setup_thuviendb.sql
--- 4. Toàn bộ CSDL, Bảng, Ràng buộc, Stored Procedures và Dữ liệu mẫu sẽ được nạp đầy đủ.
+-- LƯU Ý QUAN TRỌNG VỀ AN TOÀN DỮ LIỆU:
+-- File này dùng khi CÀI ĐẶT MỚI TỪ ĐẦU (chứa lệnh DROP DATABASE cũ nếu đã tồn tại).
+-- Nếu bạn đang có CSDL chạy thực tế và muốn nâng cấp an toàn giữ nguyên dữ liệu,
+-- VUI LÒNG CHẠY FILE: sql_patches/migration_v2_safe_upgrade.sql
 -- =================================================================================
 
 USE master;
@@ -95,6 +92,17 @@ CREATE TABLE PhieuMuon (
     TinhTrangSachKhiTra NVARCHAR(255) NULL
 );
 PRINT N'-> Đã tạo bảng PhieuMuon.';
+GO
+
+-- 2.3.1. Unique Filtered Index bảo vệ bất biến: Một bản sách không có quá 1 phiếu mượn active (0, 1, 4, 6)
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX UQ_PhieuMuon_ActiveSach
+ON PhieuMuon(MaSach)
+WHERE TrangThaiPhieu IN (0, 1, 4, 6);
+PRINT N'-> Đã tạo Unique Filtered Index UQ_PhieuMuon_ActiveSach.';
 GO
 
 -- 2.4. Bảng PhanHoi (Phản hồi & Báo cáo sự cố từ độc giả)

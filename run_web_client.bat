@@ -29,5 +29,5 @@ if "%JAVA_CMD%"=="java" (
     )
 )
 
-%JAVA_CMD% -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.web.WebServerApp
+%JAVA_CMD% -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.web.WebServerApp %*
 pause

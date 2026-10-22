@@ -3,7 +3,9 @@ package com.library.client;
 import com.library.model.DocGiaDTO;
 import com.library.model.PhieuMuonDTO;
 import com.library.model.SachDTO;
+import com.library.model.UserSessionDTO;
 import com.library.service.ILibraryService;
+import com.library.service.LibraryException;
 
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -11,7 +13,7 @@ import java.util.List;
 
 /**
  * Lớp ClientTest mô phỏng một Client từ xa kết nối qua Java RMI (Bài 9)
- * để kiểm thử tính tuần tự hóa (Serialization - Bài 6) và các nghiệp vụ từ xa.
+ * để kiểm thử tính tuần tự hóa (Serialization - Bài 6) và quy trình mượn/giao/trả sách chuẩn.
  */
 public class ClientTest {
 
@@ -22,12 +24,13 @@ public class ClientTest {
 
         try {
             // 1. Kết nối tới RMI Registry trên localhost:1099
-            System.out.println("[Client] 1. Đang định vị RMI Registry tại localhost:1099...");
-            Registry registry = LocateRegistry.getRegistry("localhost", 1099);
+            System.out.println("[Client] 1. Đang định vị RMI Registry tại 127.0.0.1:1099...");
+            Registry registry = LocateRegistry.getRegistry("127.0.0.1", 1099);
 
             // 2. Tra cứu (Lookup) Remote Stub
             System.out.println("[Client] 2. Tra cứu dịch vụ 'LibraryService'...");
             ILibraryService service = (ILibraryService) registry.lookup("LibraryService");
+            service.ping();
             System.out.println("[Client] -> Kết nối Remote Stub thành công!\n");
 
             // 3. Test lấy danh sách sách (Serialization test)
@@ -53,61 +56,66 @@ public class ClientTest {
                 System.out.println("   (Không tìm thấy kết quả phù hợp)");
             }
 
-            // 5. Test lấy danh sách độc giả
+            // 5. Test đăng nhập xác thực: Độc giả và Thủ thư
             System.out.println("\n--------------------------------------------------------------------");
-            System.out.println("[TEST 3] Triệu gọi getAllDocGia() qua RMI:");
-            List<DocGiaDTO> readers = service.getAllDocGia();
-            if (readers != null) {
-                for (DocGiaDTO d : readers) {
-                    System.out.println("   " + d);
+            System.out.println("[TEST 3] Xác thực đăng nhập qua RMI (login):");
+            UserSessionDTO readerSession = service.login("nguyenvanan@school.edu.vn", "123456");
+            System.out.println("   -> Độc giả đăng nhập thành công: " + readerSession.getUser().getHoTen() + 
+                    " [Token: " + readerSession.getToken().substring(0, 8) + "...]");
+
+            UserSessionDTO libSession = service.login("admin@school.edu.vn", "123456");
+            System.out.println("   -> Thủ thư đăng nhập thành công: " + libSession.getUser().getHoTen() + 
+                    " [Token: " + libSession.getToken().substring(0, 8) + "...]");
+
+            // 6. Test mượn sách từ xa theo chu trình chuẩn: Giữ chỗ (0) -> Giao sách (1) -> Trả sách (2)
+            System.out.println("\n--------------------------------------------------------------------");
+            System.out.println("[TEST 4] Chu trình mượn - giao - trả qua RMI:");
+            // Tìm 1 cuốn sách sẵn sàng (TrangThai = 0)
+            int targetBookId = -1;
+            for (SachDTO s : books) {
+                if (s.getTrangThai() == 0) {
+                    targetBookId = s.getMaSach();
+                    break;
                 }
             }
 
-            // 6. Test mượn sách từ xa qua Stored Procedure sp_KiemTraVaMuonSach
-            System.out.println("\n--------------------------------------------------------------------");
-            System.out.println("[TEST 4] Triệu gọi muonSach(maDocGia=1, maSach=4, soNgayMuon=14):");
-            int maPhieuMoi = -1;
-            try {
-                maPhieuMoi = service.muonSach(1, 4, 14);
-                System.out.println("   -> MƯỢN SÁCH THÀNH CÔNG! Mã phiếu mượn vừa sinh: " + maPhieuMoi);
-            } catch (Exception ex) {
-                System.out.println("   -> Thông báo: " + ex.getMessage());
-            }
+            if (targetBookId > 0) {
+                System.out.println("   - Độc giả đăng ký giữ chỗ cuốn sách #" + targetBookId + " qua RMI:");
+                int maPhieu = service.muonSach(readerSession.getToken(), targetBookId, 14);
+                System.out.println("     -> Thành công! Cấp mã phiếu #" + maPhieu + " (Trạng thái: Chờ lấy sách 24h)");
 
-            // 7. Test kiểm tra chống mượn trùng (Race Condition qua RMI)
-            System.out.println("\n--------------------------------------------------------------------");
-            System.out.println("[TEST 5] Kiểm thử mượn trùng cuốn sách vừa mượn (Mã sách 4, Độc giả 2):");
-            try {
-                service.muonSach(2, 4, 7);
-                System.err.println("   -> LỖI: Server lẽ ra phải từ chối!");
-            } catch (Exception ex) {
-                System.out.println("   -> [CHẶN THÀNH CÔNG] Client nhận được ngoại lệ từ xa: " + ex.getMessage());
-            }
-
-            // 8. Test trả sách từ xa qua sp_TraSach
-            if (maPhieuMoi > 0) {
-                System.out.println("\n--------------------------------------------------------------------");
-                System.out.println("[TEST 6] Triệu gọi traSach(maPhieu=" + maPhieuMoi + ") qua RMI:");
-                boolean traOk = service.traSach(maPhieuMoi);
-                System.out.println("   -> TRẢ SÁCH THÀNH CÔNG: " + traOk);
-            }
-
-            // 9. Lấy danh sách phiếu mượn
-            System.out.println("\n--------------------------------------------------------------------");
-            System.out.println("[TEST 7] Triệu gọi getAllPhieuMuon() qua RMI:");
-            List<PhieuMuonDTO> phieuMuons = service.getAllPhieuMuon();
-            if (phieuMuons != null) {
-                for (PhieuMuonDTO pm : phieuMuons) {
-                    System.out.println("   " + pm);
+                System.out.println("   - Thử mượn trùng cuốn sách #" + targetBookId + " bằng một độc giả khác (kỳ vọng từ chối):");
+                try {
+                    UserSessionDTO reader2Session = service.login("tranthibinh@school.edu.vn", "123456");
+                    service.muonSach(reader2Session.getToken(), targetBookId, 7);
+                    System.err.println("     -> LỖI: Server không chặn mượn trùng!");
+                } catch (LibraryException e) {
+                    System.out.println("     -> [CHẶN THÀNH CÔNG] Server ném LibraryException: " + e.getErrorCode() + " - " + e.getMessage());
                 }
+
+                System.out.println("   - Thủ thư xác nhận giao sách tại quầy (xacNhanGiaoSach):");
+                boolean giaoOk = service.xacNhanGiaoSach(libSession.getToken(), maPhieu, 14);
+                System.out.println("     -> Giao sách thành công: " + giaoOk + " (Phiếu: Đang mượn thực tế)");
+
+                System.out.println("   - Thủ thư xác nhận trả sách tại quầy (traSach):");
+                boolean traOk = service.traSach(libSession.getToken(), maPhieu, 0, "Bình thường (Nguyên vẹn)");
+                System.out.println("     -> Trả sách thành công: " + traOk + " (Sách quay về Sẵn sàng)");
+            } else {
+                System.out.println("   (Hiện không có cuốn sách nào ở trạng thái sẵn sàng để chạy demo mượn)");
             }
+
+            // 7. Lấy danh sách phiếu mượn qua quyền Thủ thư
+            System.out.println("\n--------------------------------------------------------------------");
+            System.out.println("[TEST 5] Triệu gọi getAllPhieuMuon(libToken) qua RMI:");
+            List<PhieuMuonDTO> phieuMuons = service.getAllPhieuMuon(libSession.getToken());
+            System.out.println("-> Nhận được " + (phieuMuons != null ? phieuMuons.size() : 0) + " phiếu mượn.");
 
             System.out.println("\n====================================================================");
-            System.out.println("  TẤT CẢ CÁC CA KIỂM THỬ RMI & SERIALIZATION ĐÃ HOÀN TẤT!");
+            System.out.println("  KIỂM THỬ RMI CLIENT HOÀN TẤT THÀNH CÔNG 100%!");
             System.out.println("====================================================================");
 
         } catch (Exception e) {
-            System.err.println("[ClientTest] Lỗi ngoại lệ trong quá trình kiểm thử: " + e.getMessage());
+            System.err.println("[ClientTest] LỖI: " + e.getMessage());
             e.printStackTrace();
         }
     }

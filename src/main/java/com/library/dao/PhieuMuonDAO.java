@@ -13,6 +13,7 @@ import java.util.List;
 
 /**
  * Lớp PhieuMuonDAO xử lý các thao tác quản lý phiếu mượn/trả và gọi Stored Procedures.
+ * Tuân thủ quy tắc không nuốt lỗi SQLException để phản ánh chính xác trạng thái CSDL.
  */
 public class PhieuMuonDAO {
 
@@ -39,17 +40,13 @@ public class PhieuMuonDAO {
 
             cs.execute();
 
-            int maPhieu = cs.getInt(4);
-            return maPhieu;
-        } catch (SQLException e) {
-            System.err.println("[PhieuMuonDAO.muonSach] Lỗi nghiệp vụ mượn sách: " + e.getMessage());
-            throw e;
+            return cs.getInt(4);
         }
     }
 
     /**
      * Thực thi Stored Procedure sp_TraSach trên SQL Server để trả sách.
-     * Cập nhật NgayTraThucTe, đổi trạng thái phiếu mượn sang Đã trả (1), và trả lại trạng thái sách về Sẵn sàng (0).
+     * Cập nhật NgayTraThucTe, đổi trạng thái phiếu mượn sang Đã trả (2), và trả lại trạng thái sách về Sẵn sàng (0).
      * 
      * @param maPhieu Mã phiếu mượn cần hoàn tất trả
      * @return true nếu trả sách thành công
@@ -74,14 +71,11 @@ public class PhieuMuonDAO {
             cs.setString(3, tinhTrangSach != null ? tinhTrangSach : "Bình thường (Nguyên vẹn)");
             cs.execute();
             return true;
-        } catch (SQLException e) {
-            System.err.println("[PhieuMuonDAO.traSach] Lỗi nghiệp vụ trả sách: " + e.getMessage());
-            throw e;
         }
     }
 
     /**
-     * Độc giả gửi yêu cầu trả sách. Chuyển trạng thái phiếu sang 4 (Chờ thủ thư xác nhận).
+     * Độc giả gửi yêu cầu trả sách. Chuyển trạng thái phiếu sang 6 (Chờ thủ thư xác nhận).
      * @param maPhieu Mã phiếu mượn
      * @return true nếu cập nhật thành công
      * @throws SQLException nếu lỗi cơ sở dữ liệu
@@ -93,15 +87,12 @@ public class PhieuMuonDAO {
             ps.setInt(1, maPhieu);
             int rows = ps.executeUpdate();
             return rows > 0;
-        } catch (SQLException e) {
-            System.err.println("[PhieuMuonDAO.yeuCauTraSach] Lỗi: " + e.getMessage());
-            throw e;
         }
     }
 
     /**
      * Thực thi Stored Procedure sp_BaoMatVaDenSach:
-     * Dừng tính phạt theo ngày, tính tiền đền bù = Phạt + Giá sách, chuyển phiếu sang 2, sách sang -2, khóa tài khoản độc giả.
+     * Dừng tính phạt theo ngày, tính tiền đền bù = Phạt + Giá sách, chuyển phiếu sang 4, sách sang -1, khóa tài khoản độc giả.
      * @param maPhieu Mã phiếu mượn báo mất
      * @return true nếu báo mất thành công
      * @throws SQLException nếu xảy ra lỗi CSDL
@@ -113,9 +104,6 @@ public class PhieuMuonDAO {
             cs.setInt(1, maPhieu);
             cs.execute();
             return true;
-        } catch (SQLException e) {
-            System.err.println("[PhieuMuonDAO.baoMatSach] Lỗi nghiệp vụ báo mất sách: " + e.getMessage());
-            throw e;
         }
     }
 
@@ -133,9 +121,6 @@ public class PhieuMuonDAO {
             cs.setInt(1, maPhieu);
             cs.execute();
             return true;
-        } catch (SQLException e) {
-            System.err.println("[PhieuMuonDAO.xacNhanDenBu] Lỗi nghiệp vụ xác nhận đền bù: " + e.getMessage());
-            throw e;
         }
     }
 
@@ -162,9 +147,6 @@ public class PhieuMuonDAO {
             }
             cs.execute();
             return true;
-        } catch (SQLException e) {
-            System.err.println("[PhieuMuonDAO.xacNhanGiaoSach] Lỗi nghiệp vụ giao sách: " + e.getMessage());
-            throw e;
         }
     }
 
@@ -183,17 +165,15 @@ public class PhieuMuonDAO {
                 return rs.getInt("SoLuongDaHuy");
             }
             return 0;
-        } catch (SQLException e) {
-            System.err.println("[PhieuMuonDAO.huyPhieuChoQuaHan] Lỗi quét dọn dẹp phiếu quá hạn: " + e.getMessage());
-            throw e;
         }
     }
 
     /**
-     * Lấy toàn bộ danh sách phiếu mượn kèm thông tin độc giả, tên sách, tiền đền bù, giá niêm yết và hạn giữ sách
+     * Lấy toàn bộ danh sách phiếu mượn kèm thông tin độc giả, tên sách, tiền đền bù, giá niêm yết và hạn giữ sách.
      * @return Danh sách PhieuMuonDTO
+     * @throws SQLException nếu xảy ra lỗi CSDL
      */
-    public List<PhieuMuonDTO> getAllPhieuMuon() {
+    public List<PhieuMuonDTO> getAllPhieuMuon() throws SQLException {
         List<PhieuMuonDTO> list = new ArrayList<>();
         String sql = "SELECT pm.MaPhieu, pm.MaDocGia, dg.HoTen AS TenDocGia, " +
                      "pm.MaSach, s.TenSach, pm.NgayMuon, pm.NgayHenTra, pm.NgayTraThucTe, pm.TrangThaiPhieu, " +
@@ -229,18 +209,17 @@ public class PhieuMuonDAO {
                 pm.setTinhTrangSachKhiTra(rs.getString("TinhTrangSachKhiTra"));
                 list.add(pm);
             }
-        } catch (SQLException e) {
-            System.err.println("[PhieuMuonDAO.getAllPhieuMuon] Lỗi: " + e.getMessage());
         }
         return list;
     }
 
     /**
-     * Lấy lịch sử mượn trả theo Mã độc giả kèm thông tin tiền đền bù, giá niêm yết và hạn giữ sách
+     * Lấy lịch sử mượn trả theo Mã độc giả kèm thông tin tiền đền bù, giá niêm yết và hạn giữ sách.
      * @param maDocGia Mã độc giả
      * @return Danh sách các phiếu mượn của độc giả đó
+     * @throws SQLException nếu xảy ra lỗi CSDL
      */
-    public List<PhieuMuonDTO> getPhieuMuonByDocGia(int maDocGia) {
+    public List<PhieuMuonDTO> getPhieuMuonByDocGia(int maDocGia) throws SQLException {
         List<PhieuMuonDTO> list = new ArrayList<>();
         String sql = "SELECT pm.MaPhieu, pm.MaDocGia, dg.HoTen AS TenDocGia, " +
                      "pm.MaSach, s.TenSach, pm.NgayMuon, pm.NgayHenTra, pm.NgayTraThucTe, pm.TrangThaiPhieu, " +
@@ -279,9 +258,54 @@ public class PhieuMuonDAO {
                     list.add(pm);
                 }
             }
-        } catch (SQLException e) {
-            System.err.println("[PhieuMuonDAO.getPhieuMuonByDocGia] Lỗi: " + e.getMessage());
         }
         return list;
+    }
+
+    /**
+     * Tra cứu một phiếu mượn cụ thể theo Mã phiếu.
+     * @param maPhieu Mã phiếu mượn
+     * @return PhieuMuonDTO hoặc null nếu không tồn tại
+     * @throws SQLException nếu xảy ra lỗi CSDL
+     */
+    public PhieuMuonDTO getPhieuMuonById(int maPhieu) throws SQLException {
+        String sql = "SELECT pm.MaPhieu, pm.MaDocGia, dg.HoTen AS TenDocGia, " +
+                     "pm.MaSach, s.TenSach, pm.NgayMuon, pm.NgayHenTra, pm.NgayTraThucTe, pm.TrangThaiPhieu, " +
+                     "ISNULL(pm.TienDenBu, 0) AS TienDenBu, ISNULL(s.GiaTien, 50000) AS GiaTienSach, " +
+                     "pm.NgayHetHanGiu, ISNULL(pm.TienPhat, 0) AS TienPhat, ISNULL(pm.SoNgayMuon, 14) AS SoNgayMuon, " +
+                     "ISNULL(pm.TinhTrangSachKhiTra, '') AS TinhTrangSachKhiTra " +
+                     "FROM PhieuMuon pm " +
+                     "JOIN DocGia dg ON pm.MaDocGia = dg.MaDocGia " +
+                     "JOIN Sach s ON pm.MaSach = s.MaSach " +
+                     "WHERE pm.MaPhieu = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, maPhieu);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    PhieuMuonDTO pm = new PhieuMuonDTO(
+                            rs.getInt("MaPhieu"),
+                            rs.getInt("MaDocGia"),
+                            rs.getString("TenDocGia"),
+                            rs.getInt("MaSach"),
+                            rs.getString("TenSach"),
+                            rs.getTimestamp("NgayMuon"),
+                            rs.getTimestamp("NgayHenTra"),
+                            rs.getTimestamp("NgayTraThucTe"),
+                            rs.getInt("TrangThaiPhieu"),
+                            rs.getInt("TienDenBu"),
+                            rs.getInt("GiaTienSach"),
+                            rs.getTimestamp("NgayHetHanGiu"),
+                            rs.getLong("TienPhat")
+                    );
+                    pm.setSoNgayMuon(rs.getInt("SoNgayMuon"));
+                    pm.setTinhTrangSachKhiTra(rs.getString("TinhTrangSachKhiTra"));
+                    return pm;
+                }
+            }
+        }
+        return null;
     }
 }

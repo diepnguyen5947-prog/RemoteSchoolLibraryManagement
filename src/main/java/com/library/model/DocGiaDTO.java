@@ -145,6 +145,15 @@ public class DocGiaDTO implements Serializable {
         return trangThaiTaiKhoan == 0;
     }
 
+    /**
+     * Tạo bản sao an toàn không chứa mật khẩu để truyền ra Client hoặc phản hồi API.
+     * Đảm bảo mật khẩu thuần và chuỗi băm không bao giờ bị lộ qua mạng (RMI / JSON).
+     */
+    public DocGiaDTO getSafeCopy() {
+        DocGiaDTO copy = new DocGiaDTO(this.maDocGia, this.hoTen, this.email, null, this.soDienThoai, this.vaiTro, this.trangThaiTaiKhoan, this.lyDoKhoa);
+        return copy;
+    }
+
     @Override
     public String toString() {
         return String.format("DocGiaDTO [Mã=%d | Họ tên='%s' | Email='%s' | SĐT='%s' | Vai trò=%s | Trạng thái TK=%s | Lý do='%s']",

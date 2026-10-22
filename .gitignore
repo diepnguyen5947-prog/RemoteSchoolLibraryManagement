@@ -26,3 +26,6 @@ nbproject/private/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# 5. Cau hinh cuc bo chua mat khau CSDL
+db.properties

@@ -6,9 +6,11 @@ import com.library.dao.PhieuMuonDAO;
 import com.library.dao.SachDAO;
 import com.library.dao.YeuThichDAO;
 import com.library.model.DocGiaDTO;
+import com.library.model.LibraryConstants;
 import com.library.model.PhanHoiDTO;
 import com.library.model.PhieuMuonDTO;
 import com.library.model.SachDTO;
+import com.library.model.UserSessionDTO;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -19,6 +21,7 @@ import java.util.Map;
 /**
  * Lớp cài đặt Dịch vụ Remote LibraryServiceImpl (Bài 9 - Java RMI).
  * Kế thừa UnicastRemoteObject và thực thi giao diện ILibraryService.
+ * Thực thi kiểm tra xác thực và phân quyền bằng token trên mọi lời gọi từ xa.
  */
 public class LibraryServiceImpl extends UnicastRemoteObject implements ILibraryService {
     private static final long serialVersionUID = 1L;
@@ -38,249 +41,425 @@ public class LibraryServiceImpl extends UnicastRemoteObject implements ILibraryS
         this.yeuThichDAO = new YeuThichDAO();
     }
 
-    @Override
-    public List<SachDTO> getAllBooks() throws RemoteException {
-        return sachDAO.getAllBooks();
+    public LibraryServiceImpl(int port) throws RemoteException {
+        super(port);
+        this.sachDAO = new SachDAO();
+        this.phieuMuonDAO = new PhieuMuonDAO();
+        this.docGiaDAO = new DocGiaDAO();
+        this.phanHoiDAO = new PhanHoiDAO();
+        this.yeuThichDAO = new YeuThichDAO();
     }
 
+    // --- 1. KIỂM TRA SẴN SÀNG (PING) ---
     @Override
-    public List<SachDTO> searchBooks(String keyword) throws RemoteException {
-        return sachDAO.searchBooks(keyword);
+    public boolean ping() throws RemoteException {
+        return true;
     }
 
+    // --- 2. XÁC THỰC & PHIÊN LÀM VIỆC ---
     @Override
-    public SachDTO getBookById(int maSach) throws RemoteException {
-        return sachDAO.getBookById(maSach);
-    }
-
-    @Override
-    public int muonSach(int maDocGia, int maSach, int soNgayMuon) throws RemoteException {
-        // Tự động kích hoạt kiểm tra quá hạn > 10 ngày
-        docGiaDAO.kiemTraVaCapNhatKhoaTaiKhoan(maDocGia);
-
-        // Kiểm tra trạng thái tài khoản của độc giả trước khi cho mượn
-        DocGiaDTO dg = docGiaDAO.getDocGiaById(maDocGia);
-        if (dg != null && dg.isLocked()) {
-            if (dg.getLyDoKhoa() != null && dg.getLyDoKhoa().toUpperCase().contains("MẤT SÁCH")) {
-                throw new RemoteException("Tài khoản của bạn đã bị KHOÁ do mất sách. Vui lòng liên hệ quầy Thư viện để hoàn tất nộp phạt/đền bù và làm thủ tục mở khóa!");
+    public UserSessionDTO login(String email, String matKhau) throws RemoteException, LibraryException {
+        if (email == null || email.trim().isEmpty() || matKhau == null || matKhau.trim().isEmpty()) {
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Email và mật khẩu không được để trống!");
+        }
+        try {
+            DocGiaDTO user = docGiaDAO.authenticate(email, matKhau);
+            if (user == null) {
+                throw new LibraryException(LibraryConstants.ERR_UNAUTHORIZED, "Email hoặc mật khẩu không chính xác!");
             }
-            throw new RemoteException("Tài khoản của bạn đã bị KHOÁ do có sách mượn quá hạn trên 10 ngày. Vui lòng mang sách đến quầy Thư viện để trả sách, thanh toán phí phạt và làm thủ tục mở khóa!");
+            return ServerSessionManager.createSession(user);
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi kết nối CSDL khi đăng nhập: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void logout(String token) throws RemoteException {
+        ServerSessionManager.invalidate(token);
+    }
+
+    @Override
+    public DocGiaDTO getProfile(String token) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        try {
+            DocGiaDTO fresh = docGiaDAO.getDocGiaById(caller.getMaDocGia());
+            return (fresh != null) ? fresh : caller;
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi lấy thông tin độc giả: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public int dangKyDocGia(DocGiaDTO docGia) throws RemoteException, LibraryException {
+        if (docGia == null || docGia.getEmail() == null || docGia.getEmail().trim().isEmpty() ||
+            docGia.getHoTen() == null || docGia.getHoTen().trim().isEmpty()) {
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Thông tin đăng ký không hợp lệ!");
+        }
+        docGia.setVaiTro(LibraryConstants.ROLE_READER);
+        docGia.setTrangThaiTaiKhoan(LibraryConstants.TAI_KHOAN_HOAT_DONG);
+        try {
+            return docGiaDAO.themDocGia(docGia);
+        } catch (SQLException e) {
+            if (e.getMessage() != null && e.getMessage().contains("UNIQUE")) {
+                throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Email '" + docGia.getEmail() + "' đã được đăng ký trong hệ thống!", e);
+            }
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi khi đăng ký tài khoản: " + e.getMessage(), e);
+        }
+    }
+
+    // --- 3. TRA CỨU SÁCH (CÔNG KHAI) ---
+    @Override
+    public List<SachDTO> getAllBooks() throws RemoteException, LibraryException {
+        try {
+            return sachDAO.getAllBooks();
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi lấy danh sách sách: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<SachDTO> searchBooks(String keyword) throws RemoteException, LibraryException {
+        try {
+            return sachDAO.searchBooks(keyword);
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi tìm kiếm sách: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public SachDTO getBookById(int maSach) throws RemoteException, LibraryException {
+        try {
+            SachDTO s = sachDAO.getBookById(maSach);
+            if (s == null) {
+                throw new LibraryException(LibraryConstants.ERR_BOOK_NOT_FOUND, "Không tìm thấy cuốn sách có mã: " + maSach);
+            }
+            return s;
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi tra cứu sách: " + e.getMessage(), e);
+        }
+    }
+
+    // --- 4. NGHIỆP VỤ MƯỢN / TRẢ DÀNH CHO ĐỘC GIẢ ---
+    @Override
+    public int muonSach(String token, int maSach, int soNgayMuon) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        int maDocGia = caller.getMaDocGia();
+
+        // Kiểm tra trạng thái tài khoản mới nhất trong CSDL
+        try {
+            docGiaDAO.kiemTraVaCapNhatKhoaTaiKhoan(maDocGia);
+            DocGiaDTO dg = docGiaDAO.getDocGiaById(maDocGia);
+            if (dg != null && dg.isLocked()) {
+                if (dg.getLyDoKhoa() != null && dg.getLyDoKhoa().toUpperCase().contains("MẤT SÁCH")) {
+                    throw new LibraryException(LibraryConstants.ERR_ACCOUNT_LOCKED_LOST, 
+                            "TÀI KHOẢN ĐANG BỊ KHOÁ DO MẤT SÁCH");
+                }
+                throw new LibraryException(LibraryConstants.ERR_ACCOUNT_LOCKED_OVERDUE, 
+                        "TÀI KHOẢN ĐANG BỊ KHOÁ DO CÓ SÁCH QUÁ HẠN > 10 NGÀY");
+            }
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi kiểm tra trạng thái độc giả: " + e.getMessage(), e);
         }
 
         try {
             return phieuMuonDAO.muonSach(maDocGia, maSach, soNgayMuon);
         } catch (SQLException e) {
-            String msg = e.getMessage();
-            if (msg.contains("MẤT SÁCH") || msg.contains("mất sách")) {
-                throw new RemoteException("Tài khoản của bạn đã bị KHOÁ do mất sách. Vui lòng liên hệ quầy Thư viện để hoàn tất nộp phạt/đền bù và làm thủ tục mở khóa!");
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("ERR_BOOK_RESERVED") || msg.contains("ERR_BOOK_ALREADY_BORROWED") || 
+                msg.contains("ERR_BOOK_UNAVAILABLE") || msg.contains("UQ_PhieuMuon_ActiveSach") || 
+                msg.contains("2601") || msg.contains("2627") ||
+                msg.contains("đã được mượn") || msg.contains("đang được mượn") || msg.contains("giữ chỗ")) {
+                throw new LibraryException(LibraryConstants.ERR_BOOK_NOT_AVAILABLE, 
+                        "Sách đang được mượn hoặc giữ chỗ bởi độc giả khác!", e);
             }
-            if (msg.contains("KHOÁ") || msg.contains("quá hạn trên 10 ngày")) {
-                throw new RemoteException("Tài khoản của bạn đã bị KHOÁ do có sách mượn quá hạn trên 10 ngày. Vui lòng mang sách đến quầy Thư viện để trả sách, thanh toán phí phạt và làm thủ tục mở khóa!");
+            if (msg.contains("ERR_ACCOUNT_LOCKED_LOST") || msg.contains("MẤT SÁCH") || msg.contains("mất sách")) {
+                throw new LibraryException(LibraryConstants.ERR_ACCOUNT_LOCKED_LOST, 
+                        "TÀI KHOẢN ĐANG BỊ KHOÁ DO MẤT SÁCH", e);
             }
-            // Truyền thông điệp lỗi nghiệp vụ CSDL lên RMI Client
-            throw new RemoteException("Lỗi mượn sách: " + msg, e);
+            if (msg.contains("ERR_ACCOUNT_LOCKED_OVERDUE") || msg.contains("KHOÁ") || msg.contains("quá hạn")) {
+                throw new LibraryException(LibraryConstants.ERR_ACCOUNT_LOCKED_OVERDUE, 
+                        "TÀI KHOẢN ĐANG BỊ KHOÁ DO CÓ SÁCH QUÁ HẠN > 10 NGÀY", e);
+            }
+            if (msg.contains("ERR_LOAN_LIMIT_EXCEEDED") || msg.contains("tối đa") || msg.contains("hạn mức")) {
+                throw new LibraryException(LibraryConstants.ERR_LOAN_LIMIT_EXCEEDED, 
+                        "Bạn đã mượn tối đa số sách cho phép (3 cuốn)!", e);
+            }
+            if (msg.contains("ERR_BOOK_NOT_FOUND")) {
+                throw new LibraryException(LibraryConstants.ERR_BOOK_NOT_FOUND, 
+                        "Không tìm thấy cuốn sách có mã: " + maSach, e);
+            }
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi nghiệp vụ mượn sách: " + msg, e);
         }
     }
 
     @Override
-    public boolean xacNhanGiaoSach(int maPhieu) throws RemoteException {
-        return xacNhanGiaoSach(maPhieu, 0);
+    public boolean yeuCauTraSach(String token, int maPhieu) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        try {
+            PhieuMuonDTO pm = phieuMuonDAO.getPhieuMuonById(maPhieu);
+            if (pm == null) {
+                throw new LibraryException(LibraryConstants.ERR_LOAN_NOT_FOUND, "Phiếu mượn mã #" + maPhieu + " không tồn tại!");
+            }
+            if (!caller.isLibrarian() && pm.getMaDocGia() != caller.getMaDocGia()) {
+                throw new LibraryException(LibraryConstants.ERR_FORBIDDEN, "Bạn không có quyền thao tác trên phiếu mượn của người khác!");
+            }
+            return phieuMuonDAO.yeuCauTraSach(maPhieu);
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi gửi yêu cầu trả sách: " + e.getMessage(), e);
+        }
     }
 
     @Override
-    public boolean xacNhanGiaoSach(int maPhieu, int soNgayMuon) throws RemoteException {
+    public boolean baoMatSach(String token, int maPhieu) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        try {
+            PhieuMuonDTO pm = phieuMuonDAO.getPhieuMuonById(maPhieu);
+            if (pm == null) {
+                throw new LibraryException(LibraryConstants.ERR_LOAN_NOT_FOUND, "Phiếu mượn mã #" + maPhieu + " không tồn tại!");
+            }
+            if (!caller.isLibrarian() && pm.getMaDocGia() != caller.getMaDocGia()) {
+                throw new LibraryException(LibraryConstants.ERR_FORBIDDEN, "Bạn không có quyền báo mất sách cho phiếu của người khác!");
+            }
+            return phieuMuonDAO.baoMatSach(maPhieu);
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi báo mất sách: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<PhieuMuonDTO> getPhieuMuonByDocGia(String token) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        try {
+            return phieuMuonDAO.getPhieuMuonByDocGia(caller.getMaDocGia());
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi lấy lịch sử mượn: " + e.getMessage(), e);
+        }
+    }
+
+    // --- 5. QUẢN TRỊ MƯỢN / TRẢ DÀNH CHO THỦ THƯ ---
+    @Override
+    public boolean xacNhanGiaoSach(String token, int maPhieu, int soNgayMuon) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
         try {
             return phieuMuonDAO.xacNhanGiaoSach(maPhieu, soNgayMuon);
         } catch (SQLException e) {
-            throw new RemoteException("Lỗi giao sách: " + e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi xác nhận giao sách: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public int huyPhieuChoQuaHan() throws RemoteException {
-        try {
-            return phieuMuonDAO.huyPhieuChoQuaHan();
-        } catch (SQLException e) {
-            throw new RemoteException("Lỗi dọn dẹp phiếu quá hạn: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public boolean yeuCauTraSach(int maPhieu) throws RemoteException {
-        try {
-            return phieuMuonDAO.yeuCauTraSach(maPhieu);
-        } catch (SQLException e) {
-            throw new RemoteException("Lỗi yêu cầu trả sách: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public boolean traSach(int maPhieu) throws RemoteException {
-        return traSach(maPhieu, 0, "Bình thường (Nguyên vẹn)");
-    }
-
-    @Override
-    public boolean traSach(int maPhieu, int tienPhuThu) throws RemoteException {
-        return traSach(maPhieu, tienPhuThu, "Bình thường (Nguyên vẹn)");
-    }
-
-    @Override
-    public boolean traSach(int maPhieu, int tienPhuThu, String tinhTrangSach) throws RemoteException {
+    public boolean traSach(String token, int maPhieu, int tienPhuThu, String tinhTrangSach) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
         try {
             return phieuMuonDAO.traSach(maPhieu, tienPhuThu, tinhTrangSach);
         } catch (SQLException e) {
-            throw new RemoteException("Lỗi trả sách: " + e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi xác nhận trả sách: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public boolean baoMatSach(int maPhieu) throws RemoteException {
-        try {
-            return phieuMuonDAO.baoMatSach(maPhieu);
-        } catch (SQLException e) {
-            throw new RemoteException("Lỗi báo mất sách: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public boolean xacNhanDenBu(int maPhieu) throws RemoteException {
+    public boolean xacNhanDenBu(String token, int maPhieu) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
         try {
             return phieuMuonDAO.xacNhanDenBu(maPhieu);
         } catch (SQLException e) {
-            throw new RemoteException("Lỗi xác nhận đền bù: " + e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Lỗi xác nhận đền bù: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public List<PhieuMuonDTO> getAllPhieuMuon() throws RemoteException {
-        return phieuMuonDAO.getAllPhieuMuon();
-    }
-
-    @Override
-    public List<PhieuMuonDTO> getPhieuMuonByDocGia(int maDocGia) throws RemoteException {
-        return phieuMuonDAO.getPhieuMuonByDocGia(maDocGia);
-    }
-
-    @Override
-    public DocGiaDTO login(String email, String matKhau) throws RemoteException {
-        // Tự động quét kiểm tra và khóa tài khoản quá hạn > 10 ngày trước khi đăng nhập
-        docGiaDAO.kiemTraVaCapNhatKhoaTaiKhoan(null);
-        return docGiaDAO.authenticate(email, matKhau);
-    }
-
-    @Override
-    public List<DocGiaDTO> getAllDocGia() throws RemoteException {
-        return docGiaDAO.getAllDocGia();
-    }
-
-    @Override
-    public int themDocGia(DocGiaDTO docGia) throws RemoteException {
+    public int huyPhieuChoQuaHan(String token) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
         try {
-            return docGiaDAO.themDocGia(docGia);
+            return phieuMuonDAO.huyPhieuChoQuaHan();
         } catch (SQLException e) {
-            throw new RemoteException("Lỗi thêm người dùng: " + e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi dọn dẹp phiếu quá hạn: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public boolean moKhoaTaiKhoan(int maDocGia) throws RemoteException {
+    public List<PhieuMuonDTO> getAllPhieuMuon(String token) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
         try {
-            return docGiaDAO.moKhoaTaiKhoan(maDocGia);
+            return phieuMuonDAO.getAllPhieuMuon();
         } catch (SQLException e) {
-            throw new RemoteException(e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi lấy danh sách phiếu mượn: " + e.getMessage(), e);
         }
     }
 
+    // --- 6. QUẢN LÝ SÁCH DÀNH CHO THỦ THƯ ---
     @Override
-    public DocGiaDTO kiemTraTrangThaiDocGia(int maDocGia) throws RemoteException {
-        docGiaDAO.kiemTraVaCapNhatKhoaTaiKhoan(maDocGia);
-        return docGiaDAO.getDocGiaById(maDocGia);
-    }
-
-    @Override
-    public int themSach(SachDTO sach) throws RemoteException {
+    public int themSach(String token, SachDTO sach) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
+        if (sach == null || sach.getTenSach() == null || sach.getTenSach().trim().isEmpty()) {
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Tên sách không được để trống!");
+        }
         try {
             return sachDAO.themSach(sach);
         } catch (SQLException e) {
-            throw new RemoteException("Lỗi thêm sách: " + e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi thêm sách: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public boolean capNhatSach(SachDTO sach) throws RemoteException {
+    public boolean capNhatSach(String token, SachDTO sach) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
+        if (sach == null || sach.getMaSach() <= 0) {
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Mã sách không hợp lệ!");
+        }
         try {
             return sachDAO.capNhatSach(sach);
         } catch (SQLException e) {
-            throw new RemoteException("Lỗi cập nhật sách: " + e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi cập nhật sách: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public boolean boSungSachMoi(int maSach, int giaTien) throws RemoteException {
+    public boolean boSungSachMoi(String token, int maSach, int giaTien) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
         try {
             return sachDAO.boSungSachMoi(maSach, giaTien);
         } catch (SQLException e) {
-            throw new RemoteException("Lỗi CSDL khi bổ sung sách: " + e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, e.getMessage(), e);
         }
     }
 
     @Override
-    public boolean capNhatTrangThaiSach(int maSach, int trangThai) throws RemoteException {
+    public boolean capNhatTrangThaiSach(String token, int maSach, int trangThai) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
         try {
             return sachDAO.capNhatTrangThai(maSach, trangThai);
         } catch (SQLException e) {
-            throw new RemoteException("Lỗi CSDL khi cập nhật trạng thái sách: " + e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, e.getMessage(), e);
         }
     }
 
     @Override
-    public boolean xoaSach(int maSach) throws RemoteException {
+    public boolean xoaSach(String token, int maSach) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
         try {
             return sachDAO.xoaSach(maSach);
         } catch (SQLException e) {
-            throw new RemoteException("Lỗi xóa sách: " + e.getMessage(), e);
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, e.getMessage(), e);
         }
     }
 
     @Override
-    public Map<String, Object> layThongKe() throws RemoteException {
-        return sachDAO.layThongKe();
+    public Map<String, Object> layThongKe(String token) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
+        try {
+            return sachDAO.layThongKe();
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi lấy số liệu thống kê: " + e.getMessage(), e);
+        }
     }
 
-    // --- CÁC PHƯƠNG THỨC PHẢN HỒI & BÁO CÁO TÌNH TRẠNG SÁCH ---
+    // --- 7. QUẢN TRỊ NGƯỜI DÙNG DÀNH CHO THỦ THƯ ---
     @Override
-    public boolean guiPhanHoi(int maDocGia, int maSach, String tieuDe, String noiDung) throws RemoteException {
-        return phanHoiDAO.guiPhanHoi(maDocGia, maSach, tieuDe, noiDung);
-    }
-
-    @Override
-    public List<PhanHoiDTO> getAllPhanHoi() throws RemoteException {
-        return phanHoiDAO.getAllPhanHoi();
-    }
-
-    @Override
-    public int demPhanHoiChuaXuLy() throws RemoteException {
-        return phanHoiDAO.demPhanHoiChuaXuLy();
-    }
-
-    @Override
-    public boolean xuLyPhanHoi(int maPhanHoi, String ghiChu) throws RemoteException {
-        return phanHoiDAO.capNhatTrangThai(maPhanHoi, 1, ghiChu);
-    }
-
-    // --- CÁC PHƯƠNG THỨC MỤC SÁCH YÊU THÍCH CỦA ĐỘC GIẢ ---
-    @Override
-    public boolean toggleYeuThich(int maDocGia, int maSach) throws RemoteException {
-        return yeuThichDAO.toggleYeuThich(maDocGia, maSach);
+    public List<DocGiaDTO> getAllDocGia(String token) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
+        try {
+            return docGiaDAO.getAllDocGia();
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi lấy danh sách người dùng: " + e.getMessage(), e);
+        }
     }
 
     @Override
-    public boolean isYeuThich(int maDocGia, int maSach) throws RemoteException {
-        return yeuThichDAO.isYeuThich(maDocGia, maSach);
+    public int themDocGia(String token, DocGiaDTO docGia) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
+        if (docGia == null || docGia.getEmail() == null || docGia.getEmail().trim().isEmpty()) {
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Email không được để trống!");
+        }
+        try {
+            return docGiaDAO.themDocGia(docGia);
+        } catch (SQLException e) {
+            if (e.getMessage() != null && e.getMessage().contains("UNIQUE")) {
+                throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, "Email '" + docGia.getEmail() + "' đã tồn tại!", e);
+            }
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi thêm người dùng: " + e.getMessage(), e);
+        }
     }
 
     @Override
-    public List<SachDTO> getDanhSachYeuThich(int maDocGia) throws RemoteException {
-        return yeuThichDAO.getDanhSachYeuThich(maDocGia);
+    public boolean moKhoaTaiKhoan(String token, int maDocGia) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
+        try {
+            return docGiaDAO.moKhoaTaiKhoan(maDocGia);
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    // --- 8. PHẢN HỒI & BÁO CÁO TÌNH TRẠNG SÁCH ---
+    @Override
+    public boolean guiPhanHoi(String token, int maSach, String tieuDe, String noiDung) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        try {
+            return phanHoiDAO.guiPhanHoi(caller.getMaDocGia(), maSach, tieuDe, noiDung);
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi gửi phản hồi: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<PhanHoiDTO> getAllPhanHoi(String token) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
+        try {
+            return phanHoiDAO.getAllPhanHoi();
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi lấy danh sách phản hồi: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public int demPhanHoiChuaXuLy(String token) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
+        try {
+            return phanHoiDAO.demPhanHoiChuaXuLy();
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi đếm phản hồi: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean xuLyPhanHoi(String token, int maPhanHoi, String ghiChu) throws RemoteException, LibraryException {
+        ServerSessionManager.requireRole(token, LibraryConstants.ROLE_LIBRARIAN);
+        try {
+            return phanHoiDAO.capNhatTrangThai(maPhanHoi, 1, ghiChu);
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi xử lý phản hồi: " + e.getMessage(), e);
+        }
+    }
+
+    // --- 9. MỤC SÁCH YÊU THÍCH ---
+    @Override
+    public boolean toggleYeuThich(String token, int maSach) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        try {
+            return yeuThichDAO.toggleYeuThich(caller.getMaDocGia(), maSach);
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi cập nhật mục yêu thích: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean isYeuThich(String token, int maSach) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        try {
+            return yeuThichDAO.isYeuThich(caller.getMaDocGia(), maSach);
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi kiểm tra mục yêu thích: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<SachDTO> getDanhSachYeuThich(String token) throws RemoteException, LibraryException {
+        DocGiaDTO caller = ServerSessionManager.validateToken(token);
+        try {
+            return yeuThichDAO.getDanhSachYeuThich(caller.getMaDocGia());
+        } catch (SQLException e) {
+            throw new LibraryException(LibraryConstants.ERR_SYSTEM_ERROR, "Lỗi CSDL khi lấy sách yêu thích: " + e.getMessage(), e);
+        }
     }
 }

@@ -1,10 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
-title Java Swing Client - Remote School Library
+title Java RMI Console Client - Remote School Library
 cd /d "%~dp0"
 
 echo ============================================================
-echo   KHOI CHAY JAVA CLIENT (RMI) - HE THONG QUAN LY THU VIEN
+echo   KHOI CHAY JAVA CONSOLE CLIENT (RMI) - HE THONG QUAN LY THU VIEN
+echo   Hoc phan: CMP180 - Lap trinh mang may tinh
 echo ============================================================
 
 set JAVA_CMD=java
@@ -28,5 +29,5 @@ if "%JAVA_CMD%"=="java" (
     )
 )
 
-%JAVA_CMD% -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.client.ClientMain
-pause
+%JAVA_CMD% -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.client.ClientMain %*
+if %errorlevel% neq 0 pause

@@ -2,7 +2,6 @@ package com.library.web.config;
 
 import com.library.service.ILibraryService;
 
-import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -12,19 +11,43 @@ import java.rmi.registry.Registry;
  * Lớp quản lý kết nối RMI Client (RMIClientManager).
  * Chịu trách nhiệm định vị RMI Registry, tra cứu Remote Stub ILibraryService,
  * và tự động kết nối lại (auto-reconnect) khi gặp sự cố mạng hoặc Server khởi động lại.
+ * Sử dụng phương thức ping() nhẹ nhàng thay vì truy vấn toàn bộ dữ liệu CSDL.
  */
 public class RMIClientManager {
 
-    private static final String RMI_HOST = System.getProperty("rmi.host", "localhost");
-    private static final int RMI_PORT = Integer.getInteger("rmi.port", 1099);
-    private static final String SERVICE_NAME = System.getProperty("rmi.service", "LibraryService");
-    private static final String RMI_URL = String.format("rmi://%s:%d/%s", RMI_HOST, RMI_PORT, SERVICE_NAME);
+    private static String getRmiHost() {
+        String host = System.getProperty("rmi.host");
+        if (host == null || host.trim().isEmpty()) {
+            host = System.getenv("RMI_HOST");
+        }
+        return (host != null && !host.trim().isEmpty()) ? host.trim() : "127.0.0.1";
+    }
+
+    private static int getRmiPort() {
+        String portStr = System.getProperty("rmi.port");
+        if (portStr == null || portStr.trim().isEmpty()) {
+            portStr = System.getenv("RMI_PORT");
+        }
+        if (portStr != null && !portStr.trim().isEmpty()) {
+            try {
+                return Integer.parseInt(portStr.trim());
+            } catch (NumberFormatException ignored) {}
+        }
+        return 1099;
+    }
+
+    private static String getServiceName() {
+        String svc = System.getProperty("rmi.service");
+        if (svc == null || svc.trim().isEmpty()) {
+            svc = System.getenv("RMI_SERVICE");
+        }
+        return (svc != null && !svc.trim().isEmpty()) ? svc.trim() : "LibraryService";
+    }
 
     private static RMIClientManager instance;
     private ILibraryService cachedService;
 
-    private RMIClientManager() {
-    }
+    private RMIClientManager() {}
 
     public static synchronized RMIClientManager getInstance() {
         if (instance == null) {
@@ -43,8 +66,8 @@ public class RMIClientManager {
     public synchronized ILibraryService getService() throws RemoteException {
         if (cachedService != null) {
             try {
-                // Kiểm tra tính sẵn sàng của kết nối (ping nhẹ)
-                cachedService.getAllBooks();
+                // Kiểm tra tính sẵn sàng bằng ping() nhẹ nhàng, không truy vấn CSDL
+                cachedService.ping();
                 return cachedService;
             } catch (RemoteException ex) {
                 System.err.println("[RMIClientManager] CẢNH BÁO: Mất kết nối tới RMI Server (" + ex.getMessage() + "). Đang thử kết nối lại...");
@@ -59,20 +82,25 @@ public class RMIClientManager {
      * Thực hiện kết nối lại tới RMI Server
      */
     public synchronized ILibraryService reconnect() throws RemoteException {
+        String host = getRmiHost();
+        int port = getRmiPort();
+        String serviceName = getServiceName();
+        String url = String.format("rmi://%s:%d/%s", host, port, serviceName);
+
         try {
-            System.out.println("[RMIClientManager] Đang tra cứu RMI Service tại: " + RMI_URL);
-            Registry registry = LocateRegistry.getRegistry(RMI_HOST, RMI_PORT);
-            cachedService = (ILibraryService) registry.lookup(SERVICE_NAME);
+            System.out.println("[RMIClientManager] Đang tra cứu RMI Service tại: " + url);
+            Registry registry = LocateRegistry.getRegistry(host, port);
+            cachedService = (ILibraryService) registry.lookup(serviceName);
             System.out.println("[RMIClientManager] -> KẾT NỐI RMI CLIENT THÀNH CÔNG!");
             return cachedService;
         } catch (NotBoundException e) {
             cachedService = null;
-            String msg = "Dịch vụ '" + SERVICE_NAME + "' chưa được đăng ký trong RMI Registry!";
+            String msg = "Dịch vụ '" + serviceName + "' chưa được đăng ký trong RMI Registry!";
             System.err.println("[RMIClientManager] Lỗi: " + msg);
             throw new RemoteException(msg, e);
         } catch (Exception e) {
             cachedService = null;
-            String msg = "Không thể kết nối tới RMI Server tại " + RMI_URL + ": " + e.getMessage();
+            String msg = "Không thể kết nối tới RMI Server tại " + url + ": " + e.getMessage();
             System.err.println("[RMIClientManager] Lỗi kết nối: " + msg);
             throw new RemoteException(msg, e);
         }
@@ -83,6 +111,6 @@ public class RMIClientManager {
     }
 
     public static String getRmiUrl() {
-        return RMI_URL;
+        return String.format("rmi://%s:%d/%s", getRmiHost(), getRmiPort(), getServiceName());
     }
 }

@@ -1,187 +1,138 @@
-# 📚 HỆ THỐNG QUẢN LÝ MƯỢN/TRẢ SÁCH THƯ VIỆN TRƯỜNG HỌC PHÂN TÁN
+# 📚 HỆ THỐNG QUẢN LÝ THƯ VIỆN TRƯỜNG HỌC TỪ XA (REMOTE SCHOOL LIBRARY MANAGEMENT)
 > **Distributed Remote School Library Management System**  
-> Kiến trúc: **3-Tier Architecture** | **Java RMI** | **Microsoft SQL Server (Transact-SQL)** | **Web Portal**
+> **Học phần:** CMP180 – Lập trình mạng máy tính  
+> **Nhóm thực hiện:** Nhóm em  
+> **Kiến trúc cốt lõi:** **3-Tier Architecture** | **Java RMI (Bài 9)** | **Java Serialization (Bài 6)** | **Đa luồng & Đồng bộ (Bài 3)** | **Microsoft SQL Server (Transact-SQL)** | **Web Gateway**
 
 ---
 
 ## 🌟 1. GIỚI THIỆU TỔNG QUAN
 
-Dự án **Hệ thống Quản lý Thư viện Trường học Phân tán** giải quyết bài toán mượn/trả sách trực tuyến kết hợp phục vụ tại quầy, giải quyết triệt để vấn đề **tranh chấp đồng thời (Race Condition)** và đảm bảo tính toàn vẹn dữ liệu giao dịch mượn/trả sách.
+Dự án **Hệ thống Quản lý Thư viện Trường học Từ xa** được nhóm em thiết kế và xây dựng theo chuẩn mực môn học Lập trình mạng máy tính (CMP180):
+- **Giao tiếp từ xa qua Java RMI (Bài 9):** Toàn bộ nghiệp vụ tra cứu sách, đăng ký mượn/giữ chỗ, xác nhận giao sách, thu hồi sách và xử lý tài chính đền bù đều được thực thi thông qua lời gọi hàm từ xa RMI.
+- **Truyền nhận dữ liệu qua Java Serialization (Bài 6):** Các thực thể nghiệp vụ (`SachDTO`, `DocGiaDTO`, `PhieuMuonDTO`, `UserSessionDTO`, `LibraryException`) được tuần tự hóa nhị phân qua luồng mạng theo nguyên lý Pass-By-Value an toàn, không rò rỉ thông tin mật khẩu.
+- **Kiểm soát đồng thời và chống mượn trùng (Bài 3 & SQL Server):** Ngăn chặn triệt để tình trạng hai độc giả cùng chiếm dụng một bản sách vật lý bằng sự kết hợp giữa giao dịch khóa độc quyền bi quan (`UPDLOCK`, `ROWLOCK`, `HOLDLOCK`) và chỉ mục duy nhất có điều kiện (`Unique Filtered Index`) tại tầng lưu trữ CSDL.
 
-### 🏛️ Kiến trúc hệ thống 3 tầng (3-Tier Architecture):
-1. **Tầng Cơ sở Dữ liệu (Database Tier - Microsoft SQL Server)**:
-   - Quản trị CSDL tập trung `ThuVienDB` (Collation: `Vietnamese_CI_AS`).
-   - Sử dụng **Stored Procedures**, **Transaction** và cơ chế khóa độc quyền bi quan (**Pessimistic Locking**: `UPDLOCK`, `ROWLOCK`, `HOLDLOCK`) để ngăn chặn tình trạng mượn trùng cuốn sách khi nhiều độc giả thao tác cùng thời điểm.
-   - Tự động hóa chính sách khóa tài khoản: Khóa do có sách quá hạn > 10 ngày hoặc báo mất sách chờ đền bù.
-2. **Tầng Ứng dụng & Dịch vụ (Application / RMI Server Tier)**:
-   - Java RMI Server (`ServerMain`), lắng nghe tại cổng RMI **1099**.
-   - Cung cấp giao diện dịch vụ từ xa `ILibraryService` điều phối dữ liệu qua các DAO (`SachDAO`, `PhieuMuonDAO`, `DocGiaDAO`, `PhanHoiDAO`, `YeuThichDAO`).
-3. **Tầng Giao diện Người dùng (Presentation / Client Tier)**:
-   - **Cổng thông tin Web Client** (`WebServerApp` chạy cổng **8080**): Giao diện hiện đại, trực quan xây dựng trên nền tảng Bootstrap 5, SweetAlert2, Font Awesome.
-   - Hỗ trợ 2 phân quyền người dùng chuyên biệt:
-     - 👨‍💼 **Thủ thư (Librarian)**: Quản lý kho sách, duyệt giao sách tại quầy, thẩm định trạng thái sách khi trả (Nguyên vẹn / Hư hại), quyết toán đền bù mất sách, mở khóa tài khoản, thống kê doanh thu phạt/đền bù.
-     - 🎓 **Độc giả (Reader)**: Tìm kiếm sách, đăng ký giữ chỗ trực tuyến (tùy chọn số ngày mượn 7, 14, 21, 30 ngày), theo dõi hạn trả, yêu cầu trả sách, báo mất sách, quản lý danh sách yêu thích và phản hồi sự cố.
+### 🏛️ Mô hình kiến trúc 3 tầng chuẩn (3-Tier Architecture):
+```
+[Browser / Web Client]
+        │ HTTP / JSON
+        ▼
+[Web Gateway: BookApiController / RMI Client Manager] (Port 8080)
+        │ Java RMI Stub (Remote Proxy)
+        │ Java Serialization (Bài 6 & Bài 9)
+        ▼
+[RMI Server: LibraryServiceImpl / ServerSessionManager] (Port 1099 / 1098)
+        │ JDBC Connection (db.properties)
+        ▼
+[Database: Microsoft SQL Server - ThuVienDB] (Port 1433)
+```
+> **Lưu ý chuẩn mực học thuật:**
+> - Trình duyệt Web **không phải** là Java RMI Client trực tiếp. Web Gateway đóng vai trò là một RMI Client trung gian chuyển tiếp yêu cầu và chuyển đổi kết quả.
+> - Web Gateway **không đi tắt** xuống DAO hay truy cập trực tiếp CSDL. Mọi nghiệp vụ đều đi qua RMI Server.
+> - Hệ thống cung cấp đồng thời ứng dụng **`ClientMain` (Java Console RMI Client)** để thực hiện tra cứu, đăng nhập và mượn/trả sách độc lập hoàn toàn với Web HTTP.
 
 ---
 
 ## ⚙️ 2. YÊU CẦU MÔI TRƯỜNG (PREREQUISITES)
 
-Để chạy dự án, máy tính cần cài đặt sẵn:
-- **Hệ điều hành**: Windows 10/11 (khuyến nghị), macOS hoặc Linux.
-- **Java Development Kit (JDK)**: JDK 11, JDK 17 hoặc JDK 21 (Kiểm tra bằng lệnh `java -version` trong Command Prompt).
-- **Hệ quản trị CSDL**: Microsoft SQL Server 2016 / 2019 / 2022 hoặc SQL Server Express.
-- **Công cụ CSDL**: SQL Server Management Studio (SSMS) hoặc Azure Data Studio.
-- **Trình duyệt Web**: Google Chrome, Microsoft Edge, Firefox, Brave, Cốc Cốc.
+- **Hệ điều hành:** Windows 10/11 (khuyến nghị cho môi trường thực hành), macOS hoặc Linux.
+- **Java Development Kit (JDK):** JDK 17 LTS (OpenJDK hoặc Oracle JDK).
+- **Hệ quản trị CSDL:** Microsoft SQL Server 2016 / 2019 / 2022 hoặc SQL Server Express (cổng 1433).
+- **Trình duyệt Web:** Google Chrome, Microsoft Edge, Firefox.
 
 ---
 
 ## 🚀 3. HƯỚNG DẪN CÀI ĐẶT & KHỞI CHẠY (QUICK START)
 
 ### 📌 Bước 1: Khởi tạo Cơ sở Dữ liệu `ThuVienDB`
-1. Khởi động **SQL Server Management Studio (SSMS)** và kết nối tới SQL Server của bạn.
-2. Mở file [**`setup_thuviendb.sql`**](file:///setup_thuviendb.sql) nằm tại thư mục gốc của dự án.
-3. Nhấn nút **Execute** (hoặc phím tắt **F5**).
-4. *Hoặc chạy nhanh bằng lệnh trong Terminal (Command Prompt / PowerShell):*
-   ```bat
-   sqlcmd -S 127.0.0.1,1433 -U sa -P 123456 -i setup_thuviendb.sql
-   ```
-> Script sẽ tự động tạo cơ sở dữ liệu `ThuVienDB`, 5 bảng dữ liệu, 9 Stored Procedures và toàn bộ dữ liệu mẫu ban đầu.
+Mở SQL Server Management Studio (SSMS) hoặc chạy lệnh trong Terminal:
+```bat
+sqlcmd -S 127.0.0.1,1433 -U sa -P 123456 -i setup_thuviendb.sql
+```
+Sau đó chạy kịch bản kiểm tra toàn vẹn CSDL:
+```bat
+sqlcmd -S 127.0.0.1,1433 -U sa -P 123456 -d ThuVienDB -i verify_thuviendb.sql
+```
+*(Kết quả hiển thị: `7 / 7 CA KIỂM THỬ ĐẠT (PASS)`)*.
 
----
-
-### 📌 Bước 2: Kiểm tra cấu hình kết nối SQL Server
-Mặc định hệ thống kết nối tới SQL Server với thông số:
-- **Host**: `localhost:1433`
-- **Database**: `ThuVienDB`
-- **User**: `sa`
-- **Mật khẩu mặc định**: `123456`
-
-*(Lớp `DBConnection.java` đã được tích hợp cơ chế tự động thử danh sách mật khẩu phổ biến: `123456`, `Password123!`, `Admin@123`, `12345678`, `root`. Nếu SQL Server của bạn đặt mật khẩu khác, bạn có thể chỉnh tại dòng 19 file `src/main/java/com/library/dao/DBConnection.java`)*.
-
----
+### 📌 Bước 2: Cấu hình kết nối CSDL (`db.properties`)
+Nhóm em đã tách cấu hình CSDL ra file cục bộ để đảm bảo an toàn thông tin:
+- Mặc định hệ thống nạp thông số từ file [**`db.properties`**](file:///db.properties) (đã cấu hình sẵn cho tài khoản `sa` / `123456`).
+- Nếu môi trường của thầy cô hoặc bạn học sử dụng tài khoản khác, chỉ cần chỉnh sửa các dòng:
+  ```properties
+  db.url=jdbc:sqlserver://127.0.0.1:1433;databaseName=ThuVienDB;trustServerCertificate=true;
+  db.user=sa
+  db.password=123456
+  ```
 
 ### 📌 Bước 3: Biên dịch mã nguồn Java
-Nhấp đúp chuột vào file:
+Chạy file script biên dịch sạch (Clean Build):
 👉 **`compile.bat`**
-- Script sẽ tự động dò tìm JDK và biên dịch toàn bộ các package Java vào thư mục `bin/`.
-- Khi màn hình hiển thị `[THANH CONG] BIEN DICH HOAN TAT!` là đã sẵn sàng.
+- Script tự động làm sạch `bin/`, quét toàn bộ mã nguồn trong `src/` và các tệp kiểm thử gốc, biên dịch thành các tệp `.class` tương thích Java 17.
+
+### 📌 Bước 4: Khởi chạy các thành phần theo thứ tự
+
+#### 1️⃣ Khởi chạy RMI Server:
+Chạy script: 👉 **`run_server.bat`**
+- Server sẽ kiểm tra CSDL, mở RMI Registry tại cổng **1099** và export Remote Object tại cổng **1098**.
+- Khi màn hình hiện `[TRẠNG THÁI: HEALTHY] RMI SERVER SẴN SÀNG TIẾP NHẬN YÊU CẦU TỪ CÁC CLIENT!`, giữ cửa sổ này chạy nền.
+
+#### 2️⃣ Khởi chạy Java RMI Console Client (Gọi trực tiếp RMI):
+Chạy script: 👉 **`run_client.bat`**
+- Ứng dụng Console kết nối trực tiếp RMI Stub, cho phép đăng nhập, tra cứu sách và đăng ký mượn/trả mà không cần bật Web Server.
+
+#### 3️⃣ Khởi chạy Web Gateway (Cổng Web Portal):
+Chạy script: 👉 **`run_web_client.bat`**
+- Máy chủ Web lắng nghe tại cổng **8080**.
+- Mở trình duyệt Web tại địa chỉ: 👉 **[http://localhost:8080/login](http://localhost:8080/login)**.
 
 ---
 
-### 📌 Bước 4: Khởi chạy hệ thống
+## 🔑 4. DANH SÁCH TÀI KHOẢN THỰC THỬ MẪU (TEST ACCOUNTS)
 
-Khởi chạy theo đúng thứ tự 2 bước sau:
+Mật khẩu mặc định cho toàn bộ tài khoản: **`123456`**
 
-#### 1️⃣ Bật Server RMI:
-Nhấp đúp chuột vào file:
-👉 **`run_server.bat`**
-- Cửa sổ console sẽ hiện: `RMI Registry da khoi tao tai cong 1099` và `LibraryService da dang ky thanh cong!`
-*(Giữ nguyên cửa sổ này đang chạy)*.
-
-#### 2️⃣ Bật Web Server Client:
-Nhấp đúp chuột vào file:
-👉 **`run_web_client.bat`**
-- Cửa sổ console sẽ hiện: `KHOI CHAY WEB CLIENT SERVER - CONG 8080 | URL: http://localhost:8080`
-*(Giữ nguyên cửa sổ này đang chạy)*.
-
-#### 3️⃣ Truy cập ứng dụng:
-Mở trình duyệt Web và truy cập:
-👉 **[http://localhost:8080/login](http://localhost:8080/login)**
+| Vai trò | Họ tên | Email đăng nhập | Mô tả quyền hạn |
+| :--- | :--- | :--- | :--- |
+| 👨‍💼 **Thủ Thư (Librarian)** | Thủ Thư Quản Trị | `admin@school.edu.vn` | Toàn quyền quản trị kho sách, duyệt giao sách tại quầy, thẩm định trả sách, quyết toán đền bù, mở khóa tài khoản, xem thống kê. |
+| 🎓 **Độc Giả 1 (Reader)** | Nguyễn Văn An | `nguyenvanan@school.edu.vn` | Tài khoản độc giả chuẩn, dùng mượn sách và kiểm thử quy trình giao/trả. |
+| 🎓 **Độc Giả 2 (Reader)** | Trần Thị Bình | `tranthibinh@school.edu.vn` | Độc giả độc lập dùng để kiểm thử mượn trùng đồng thời. |
+| 🎓 **Độc Giả 3 (Reader)** | Lê Hoàng Cường | `lehoangcuong@school.edu.vn` | Độc giả bổ sung cho các kịch bản nhiều người dùng. |
 
 ---
 
-## 🔑 4. DANH SÁCH TÀI KHOẢN ĐĂNG NHẬP MẪU
+## 🎯 5. BỘ KIỂM THỬ 3 TẦNG ĐỘC LẬP (VERIFIED TEST SUITE)
 
-Hệ thống đã chuẩn bị sẵn các tài khoản mẫu để bạn và thầy cô dễ dàng kiểm thử ngay:
+Nhóm em đã xây dựng bộ kiểm thử có thể kiểm chứng độc lập theo 3 tầng:
 
-| Vai trò | Họ tên | Email đăng nhập | Mật khẩu | Mô tả quyền hạn |
-| :--- | :--- | :--- | :--- | :--- |
-| 👨‍💼 **Thủ Thư** | Thủ Thư Quản Trị | `admin@school.edu.vn` | `123456` | Quản lý toàn bộ kho sách, duyệt giao sách tại quầy, trả sách & thẩm định, thu đền bù, mở khóa tài khoản, xem thống kê. |
-| 🎓 **Độc Giả 1** | Nguyễn Văn An | `nguyenvanan@school.edu.vn` | `123456` | Độc giả chuẩn, có lịch sử mượn trả mẫu nguyên vẹn. |
-| 🎓 **Độc Giả 2** | Trần Thị Bình | `tranthibinh@school.edu.vn` | `123456` | Độc giả mẫu có lịch sử trả sách hỏng kèm phụ thu bồi hoàn. |
-| 🎓 **Độc Giả 3** | Lê Hoàng Cường | `lehoangcuong@school.edu.vn` | `123456` | Đang trong hạn mượn cuốn *Đắc nhân tâm*. |
-| 🎓 **Độc Giả 4** | Phạm Thị Dung | `phamthidung@school.edu.vn` | `123456` | Đang có 1 phiếu giữ chỗ trực tuyến chờ nhận tại quầy. |
+### Tầng A: Serialization & DTO Unit Test (Bài 6)
+- **Lớp kiểm thử:** `com.library.test.SerializationTest`
+- **Lệnh chạy:** `java -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.test.SerializationTest`
+- **Kết quả:** **6 / 6 ca kiểm thử ĐẠT (PASS)** (Bao gồm kiểm chứng Pass-By-Value và bảo mật không rò rỉ mật khẩu).
 
-> 💡 **Tính năng Tạo tài khoản mới**: Bạn cũng có thể nhấn tab **"Tạo tài khoản mới"** tại trang đăng nhập để tự tạo tài khoản độc giả theo thông tin riêng (hệ thống có kiểm tra form validation đầy đủ, chống bỏ trống và báo lỗi viền đỏ trực quan).
+### Tầng B: RMI Integration & Real SQL Server Test (Bài 9)
+- **Lớp kiểm thử:** `com.library.test.RmiIntegrationTest`
+- **Lệnh chạy:** `java -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.test.RmiIntegrationTest`
+- **Kết quả:** **13 / 13 ca kiểm thử ĐẠT (PASS)** (Kiểm tra Remote Stub, ping, token authentication, role authorization, chu trình 6 trạng thái mượn/giao/trả và đối chiếu CSDL thật).
 
----
-
-## 🎯 5. KỊCH BẢN KIỂM THỬ DEMO (DEMO SCENARIOS)
-
-### 📌 Kịch bản 1: Mượn sách trực tuyến & Nhận sách tại quầy (Hold & Pickup)
-1. Đăng nhập tài khoản Độc giả: `nguyenvanan@school.edu.vn` / `123456`.
-2. Vào **Kho Sách**, chọn một cuốn sách đang ở trạng thái **Sẵn sàng** (ví dụ: *Cơ sở dữ liệu nâng cao*).
-3. Nhấn **Mượn Sách**, chọn thời hạn mượn (ví dụ: 14 ngày) -> Hệ thống báo giữ chỗ thành công với hạn giữ 24 giờ. Trạng thái phiếu là **"Chờ lấy sách"**.
-4. Mở tab ẩn danh hoặc đăng xuất, đăng nhập tài khoản Thủ thư: `admin@school.edu.vn` / `123456`.
-5. Vào **Quản Lý Mượn/Trả**, tìm phiếu vừa tạo -> Nhấn **Giao Sách**.
-6. Phiếu mượn lập tức chuyển sang **"Đang mượn"** và tính hạn trả chính xác.
-
-### 📌 Kịch bản 2: Trả sách & Thẩm định tình trạng tại quầy
-1. Tại trang **Quản Lý Mượn/Trả** của Thủ thư, chọn một phiếu đang ở trạng thái **"Đang mượn"** -> Nhấn **Nhận Sách & Trả**.
-2. Một hộp thoại thẩm định sách hiện ra:
-   - Nếu chọn **"Nguyên vẹn"**: Phụ thu = 0đ, trạng thái hiển thị màu xanh lá.
-   - Nếu chọn **"Hỏng hóc / Hư hại"**: Nhập số tiền phụ thu đền bù (ví dụ: 20.000 VNĐ).
-3. Nhấn **Xác nhận hoàn tất trả sách**.
-4. Vào trang **Lịch Sử Mượn Sách** của Thủ thư: Phiếu đã được lưu trữ vào lịch sử, nhấn nút **"Chi tiết"** sẽ hiển thị đầy đủ tình trạng sách khi nhận và quyết toán tài chính nếu có.
-
-### 📌 Kịch bản 3: Báo mất sách & Tự động khóa / Mở khóa tài khoản
-1. Độc giả có sách đang mượn nhấn nút **Báo Mất Sách**.
-2. Hệ thống tự động tính tiền đền bù (Giá sách + Phạt quá hạn nếu có), chuyển phiếu sang **"Chờ đền bù"**, sách sang **"Đã mất"**, và tự động khóa tài khoản độc giả với lý do:  
-   *`"TÀI KHOẢN ĐANG BỊ KHOÁ DO MẤT SÁCH"`*.
-3. Độc giả bị chặn không thể tiếp tục mượn sách.
-4. Thủ thư vào mục **Quản lý Vi phạm & Đền bù**, nhấn **Xác nhận thu tiền đền bù** tại quầy.
-5. Sau khi thanh toán xong, tài khoản độc giả được tự động mở khóa bình thường.
-
-### 📌 Kịch bản 4: Kiểm thử tranh chấp đồng thời (Concurrency Control Test)
-Để chứng minh với giảng viên hệ thống giải quyết triệt để lỗi Race Condition:
-1. Chạy file: 👉 **`run_concurrency_test.bat`**
-2. Chương trình sẽ khởi tạo đồng thời **10 luồng (Threads)** đại diện cho 10 độc giả cùng tranh nhau mượn **1 cuốn sách duy nhất** trong cùng 1 mili-giây.
-3. **Kết quả**: Chỉ duy nhất **1 giao dịch thành công**, 9 giao dịch còn lại nhận thông báo lỗi an toàn và được rollback hoàn toàn, số lượng sách không bao giờ bị âm hoặc mượn trùng.
+### Tầng C: RMI Concurrency Test (Bài 3 & SQL Server Invariants)
+- **Lớp kiểm thử:** `com.library.test.RmiConcurrencyTest`
+- **Chạy kịch bản 2 Clients đồng thời:**
+  ```bat
+  java -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.test.RmiConcurrencyTest 2 1
+  ```
+- **Chạy kịch bản 10 Clients đồng thời:**
+  ```bat
+  java -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.test.RmiConcurrencyTest 10 1
+  ```
+- **Kết quả:** **100% ĐẠT (PASS)**. Đúng 1 yêu cầu nhận phiếu mượn thành công, các yêu cầu còn lại bị từ chối với mã lỗi `ERR_BOOK_NOT_AVAILABLE`, CSDL ghi nhận chính xác 1 phiếu chiếm dụng duy nhất.
 
 ---
 
-## 📂 6. CẤU TRÚC THƯ MỤC DỰ ÁN
-
-```plaintext
-RemoteSchoolLibrary/
-├── src/main/java/com/library/
-│   ├── model/                  # Các lớp thực thể & DTO (Sach, DocGia, PhieuMuon...)
-│   ├── dao/                    # Xử lý kết nối CSDL và gọi Stored Procedures
-│   ├── service/                # Interface và triển khai dịch vụ RMI (ILibraryService)
-│   ├── server/                 # Điểm khởi chạy RMI Registry Server (ServerMain)
-│   ├── client/                 # Mã nguồn RMI Client Swing/Console
-│   └── web/                    # Máy chủ Web HTTP, Web Controller, API Restful & Giao diện
-│       ├── config/             # Cấu hình Web và RMI Client Manager
-│       ├── controller/         # BookApiController, WebStaticController
-│       └── util/               # Bộ phân giải JSON và xử lý HTTP
-├── lib/                        # Thư viện ngoài (mssql-jdbc-12.8.1.jre11.jar)
-├── sql_patches/                # Thư mục lưu lịch sử các bản vá SQL đã thực hiện
-├── setup_thuviendb.sql         # File SQL TỔNG HỢP TOÀN BỘ CSDL (chạy file này khi cài mới)
-├── verify_thuviendb.sql        # Script kiểm thử tự động toàn diện CSDL
-├── compile.bat                 # Script 1-click tự động biên dịch toàn bộ dự án
-├── run_server.bat              # Script 1-click khởi chạy RMI Server (Port 1099)
-├── run_web_client.bat          # Script 1-click khởi chạy Web Portal (Port 8080)
-├── run_client.bat              # Script 1-click khởi chạy Java Client RMI
-├── run_concurrency_test.bat    # Script 1-click chạy kiểm thử tranh chấp đồng thời
-├── restart_sql_server.bat      # Script hỗ trợ khởi động lại dịch vụ SQL Server
-├── pom.xml                     # Cấu hình dự án Maven tiêu chuẩn
-└── .gitignore                  # Cấu hình loại trừ file rác khi đẩy lên GitHub
-```
-
----
-
-## 🛠️ 7. XỬ LÝ SỰ CỐ THƯỜNG GẶP (TROUBLESHOOTING)
-
-| Sự cố | Nguyên nhân | Cách khắc phục |
-| :--- | :--- | :--- |
-| **`Connection refused: connect`** | SQL Server chưa bật dịch vụ TCP/IP hoặc dịch vụ SQL Server chưa chạy. | 1. Mở **Sql Server Configuration Manager** -> **Protocols for MSSQLSERVER** -> Bật **TCP/IP** (Port 1433).<br>2. Nhấp đúp file `restart_sql_server.bat` bằng quyền Administrator. |
-| **`Login failed for user 'sa'`** | Mật khẩu tài khoản `sa` khác với `123456`. | Mở file `src/main/java/com/library/dao/DBConnection.java`, sửa lại mật khẩu đúng tại mảng `CANDIDATE_PASSWORDS`, sau đó chạy lại `compile.bat`. |
-| **`Port 1099 already in use`** | RMI Server cũ vẫn đang chạy nền. | Mở Task Manager, kết thúc các tiến trình `java.exe` đang chạy nền hoặc đổi port RMI. |
-| **`Port 8080 already in use`** | Đang có ứng dụng khác (Tomcat, NetBeans, IIS...) dùng cổng 8080. | Tắt ứng dụng đang chiếm cổng 8080 hoặc mở Task Manager để đóng tiến trình. |
-
----
-
-## 👥 THÔNG TIN ĐỒ ÁN & TÁC GIẢ
-- **Tên đề tài**: Hệ thống Quản Lý Mượn / Trả Sách Thư Viện Trường Học Phân Tán.
-- **Công nghệ chính**: Java RMI, Microsoft SQL Server (Pessimistic Locking / Transact-SQL), Java HTTP Web Server, Bootstrap 5 UI.
-- **Phát hành**: Sẵn sàng triển khai, kiểm thử và bảo vệ đồ án.
+## 📂 6. TÀI LIỆU VÀ BÁO CÁO KÈM THEO
+- [**`AUDIT_AND_FIX_REPORT.md`**](file:///AUDIT_AND_FIX_REPORT.md): Báo cáo rà soát và khắc phục toàn bộ 11 điểm cốt lõi của đồ án.
+- [**`TEST_PLAN.md`**](file:///TEST_PLAN.md): Kế hoạch kiểm thử chi tiết 3 tầng.
+- [**`TEST_RESULTS.md`**](file:///TEST_RESULTS.md): Nhật ký thực chạy kiểm thử, môi trường và bằng chứng log.
+- [**`DEMO_GUIDE.md`**](file:///DEMO_GUIDE.md): Cẩm nang hướng dẫn demo trên 1 máy tính và demo qua mạng LAN đa máy, kèm bộ câu hỏi vấn đáp.
+- [**`sql_patches/audit_inspect_db.sql`**](file:///sql_patches/audit_inspect_db.sql): Kịch bản kiểm tra an toàn dữ liệu CSDL ở chế độ Read-Only.

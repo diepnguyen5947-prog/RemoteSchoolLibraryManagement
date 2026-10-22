@@ -1,0 +1,12 @@
+# ====================================================================
+# CAU HINH KET NOI CO SO DU LIEU SQL SERVER - REMOTE SCHOOL LIBRARY
+# ====================================================================
+# Sao chep file nay thanh "db.properties" de tuy chinh thong so moi truong.
+# File "db.properties" da duoc them vao .gitignore de bao mat mat khau.
+
+# Chuoi ket noi JDBC toi SQL Server
+db.url=jdbc:sqlserver://127.0.0.1:1433;databaseName=ThuVienDB;trustServerCertificate=true;
+
+# Tai khoan va Mat khau dang nhap SQL Server
+db.user=sa
+db.password=123456

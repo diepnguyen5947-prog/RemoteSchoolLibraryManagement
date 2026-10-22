@@ -5,7 +5,7 @@ cd /d "%~dp0"
 
 echo ============================================================
 echo   KHOI CHAY RMI SERVER - HE THONG QUAN LY THU VIEN
-echo   Cong RMI Registry: 1099 | Service: LibraryService
+echo   Cong RMI Registry: 1099 - Service: LibraryService
 echo ============================================================
 
 set JAVA_CMD=java
@@ -29,5 +29,5 @@ if "%JAVA_CMD%"=="java" (
     )
 )
 
-%JAVA_CMD% -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.server.ServerMain
+%JAVA_CMD% -Dfile.encoding=UTF-8 -cp "bin;lib/*" com.library.server.ServerMain %*
 pause
